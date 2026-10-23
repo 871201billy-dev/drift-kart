@@ -899,7 +899,7 @@ function setBoost(k,t,top,kind){
 /* ---------- Physics ---------- */
 const G=36,FLICK=2.4,CARVE=5;
 // tyre side force: linear in slip angle at first, then saturating at the grip limit
-const TURNLOSS=.22,TRIGMAX=.5,ESC=8,ICEREC=2.6,YAWA=1.0,TRIGK=2.4,SLIDEL=.8,DRAWK=.04,GSL=1.3,YAWK=8,YAWK2=5.5,FSAT=73,TYK=19;
+const TURNLOSS=.22,TRIGA=10,YAWLOOSE=1.8,TRIGMAX=.5,ESC=8,ICEREC=2.6,YAWA=1.0,TRIGK=1.2,SLIDEL=.8,DRAWK=.04,GSL=1.3,YAWK=8,YAWK2=5.5,FSAT=73,TYK=19;
 const tyre=(alpha,C,Fmax)=>Fmax*Math.tanh(C*alpha/Math.max(Fmax,.01));
 function updateKart(k,inp,dt,now){
   const c=k.car,style=1,hand=c.turn/1.9;
@@ -939,9 +939,18 @@ function updateKart(k,inp,dt,now){
     // lets the same arrow swing the nose much harder, either way, and lets the nose answer faster
     const auth=YAWA*hand*Math.min(1,V/20)*Math.pow(52/Math.max(V,52),.8);
     const light=Math.max(k.ice,SLIDEL*clamp((slipAx-.1)/.3,0,1));
-    const rT=-st*auth*(1+TRIGK*light)*(back||u<-1?-1:1);
-    const Ky=YAWK-YAWK2*Math.min(1,slipAx/.3)*(1-.6*k.ice);
+    // with the rear loose the arrows act at once (the smoothing only models turning a gripping kart in)
+    const loose=Math.max(k.ice,clamp((slipAx-.05)/.15,0,1));
+    const stE=st+((inp.dir!=null?inp.dir:st)-st)*loose;
+    const rev=back||u<-1?-1:1;
+    const rT=-stE*auth*(1+TRIGK*light)*rev;
+    // a gripping kart's nose follows the wheel closely; a loose one only slowly sheds its spin, so a drift
+    // carries on by its own momentum after you let go
+    const Ky=YAWK-(YAWK-YAWLOOSE)*Math.max(loose,Math.min(1,slipAx/.3));
     k.r+=(rT-k.r)*Math.min(1,Ky*dt);
+    // Shift with an arrow is a turning torque on top: the longer it is held (up to TRIGMAX) the more spin it
+    // builds — a tap is a small drift, a long press a big one
+    k.r+=-stE*TRIGA*k.ice*rev*dt;
     k.h+=k.r*dt;
     // travel: tyre friction pulls it onto the long axis (nose, or tail when going tail-first)
     const gap=back?angWrap(k.h+Math.PI-mv):angWrap(k.h-mv);
