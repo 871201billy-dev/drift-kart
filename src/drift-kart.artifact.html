@@ -896,7 +896,7 @@ function setBoost(k,t,top,kind){
 /* ---------- Physics ---------- */
 const G=36,FLICK=2.4,CARVE=5;
 // tyre side force: linear in slip angle at first, then saturating at the grip limit
-const TRIGMAX=.5,ESC=8,ICEREC=2.6,YAWA=1.0,TRIGK=4.6,SLIDEL=.8,DRAWK=.04,GSL=1.3,YAWK=8,YAWK2=5.5,FSAT=66,TYK=19;
+const TRIGMAX=.5,ESC=8,ICEREC=2.6,YAWA=1.0,TRIGK=5.8,SLIDEL=.8,DRAWK=.04,GSL=2.3,YAWK=8,YAWK2=5.5,FSAT=100,TYK=19;
 const tyre=(alpha,C,Fmax)=>Fmax*Math.tanh(C*alpha/Math.max(Fmax,.01));
 function updateKart(k,inp,dt,now){
   const c=k.car,style=1,hand=c.turn/1.9;
