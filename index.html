@@ -350,12 +350,12 @@ const fmt=t=>{if(!isFinite(t))return '--';const m=Math.floor(t/60),s=t-m*60;retu
 /* ---------- Data ---------- */
 const LAPS=3,CURB=1.6;
 const CARS=[
-  {id:'standard',name:'標準號',type:'平衡型',desc:'各項能力平均，最好上手，適合剛開始玩。',color:0xffd23f,helmet:0xe8243c,top:52,accel:35,turn:1.9,gauge:1.0,dgrip:1.6,mass:1.0,w:1,wing:1},
-  {id:'comet',name:'彗星',type:'極速型',desc:'直線極速最高，可是起步和出彎比較慢，要靠甩尾保住速度。',color:0x1f6fff,helmet:0xffffff,top:56,accel:29,turn:1.72,gauge:.9,dgrip:1.7,mass:1.05,w:.95,wing:2},
-  {id:'bolt',name:'閃電',type:'加速型',desc:'油門一踩就到頂，撞牆後也能馬上追回來，極速稍低。',color:0x2ecc71,helmet:0x22242c,top:50.5,accel:44,turn:1.92,gauge:.95,dgrip:1.6,mass:.95,w:.95,wing:1},
-  {id:'swallow',name:'燕子',type:'操控型',desc:'轉向最靈敏，髮夾彎和冰雪山道的好幫手，車身最輕。',color:0x3de1ff,helmet:0xff3d7f,top:51,accel:36,turn:2.2,gauge:1.0,dgrip:1.8,mass:.8,w:.9,wing:0},
-  {id:'tornado',name:'旋風',type:'甩尾型',desc:'甩尾滑得最遠，氮氣集得最快，適合愛甩的人。',color:0xff3d7f,helmet:0xfff1a8,top:52,accel:34,turn:1.88,gauge:1.4,dgrip:1.25,mass:.95,w:1,wing:1},
-  {id:'rhino',name:'犀牛',type:'重量型',desc:'車身最重，撞到別人不太減速，反而能把對手擠開。',color:0xa35cff,helmet:0xffd23f,top:53,accel:31,turn:1.7,gauge:.95,dgrip:1.7,mass:1.8,w:1.18,wing:2},
+  {id:'standard',name:'標準號',type:'平衡型',desc:'各項能力平均，最好上手，適合剛開始玩。',color:0xffd23f,helmet:0xe8243c,top:52,accel:35,turn:1.9,gauge:1.0,esc:1800,draw:0.07,mass:1.0,w:1,wing:1},
+  {id:'comet',name:'彗星',type:'極速型',desc:'直線極速最高，可是起步和出彎比較慢，要靠甩尾保住速度。',color:0x1f6fff,helmet:0xffffff,top:56,accel:29,turn:1.72,gauge:.9,esc:1850,draw:0.067,mass:1.05,w:.95,wing:2},
+  {id:'bolt',name:'閃電',type:'加速型',desc:'油門一踩就到頂，撞牆後也能馬上追回來，極速稍低。',color:0x2ecc71,helmet:0x22242c,top:50.5,accel:44,turn:1.92,gauge:.95,esc:1750,draw:0.07,mass:.95,w:.95,wing:1},
+  {id:'swallow',name:'燕子',type:'操控型',desc:'轉向最靈敏，髮夾彎和冰雪山道的好幫手，車身最輕。',color:0x3de1ff,helmet:0xff3d7f,top:51,accel:36,turn:2.2,gauge:1.0,esc:1800,draw:0.074,mass:.8,w:.9,wing:0},
+  {id:'tornado',name:'旋風',type:'甩尾型',desc:'甩尾滑得最遠，氮氣集得最快，適合愛甩的人。',color:0xff3d7f,helmet:0xfff1a8,top:52,accel:34,turn:1.88,gauge:1.4,esc:2050,draw:0.072,mass:.95,w:1,wing:1},
+  {id:'rhino',name:'犀牛',type:'重量型',desc:'車身最重，撞到別人不太減速，反而能把對手擠開。',color:0xa35cff,helmet:0xffd23f,top:53,accel:31,turn:1.7,gauge:.95,esc:1700,draw:0.068,mass:1.8,w:1.18,wing:2},
 ];
 const STATS=[['極速',c=>(c.top-48)/9],['加速',c=>(c.accel-26)/19],['操控',c=>(c.turn-1.6)/.65],['集氣',c=>(c.gauge-.8)/.65],['重量',c=>(c.mass-.65)/1.2]];
 const carById=id=>CARS.find(c=>c.id===id)||CARS[0];
@@ -879,7 +879,7 @@ const G=36,FLICK=2.4,CARVE=5;
 // tyre side force: linear in slip angle at first, then saturating at the grip limit
 const tyre=(alpha,C,Fmax)=>Fmax*Math.tanh(C*alpha/Math.max(Fmax,.01));
 function updateKart(k,inp,dt,now){
-  const c=k.car,style=Math.min(1.3,1.6/c.dgrip),hand=c.turn/1.9;
+  const c=k.car,style=1,hand=c.turn/1.9;
   const st=inp.steer,sd=inp.dir!=null?inp.dir:(Math.abs(st)>.3?Math.sign(st):0);
   if(inp.drift&&!k.driftHeld)k.pressT=now;k.driftHeld=inp.drift;
   // a Shift tap is buffered briefly so Shift and arrow can land in either order
@@ -914,10 +914,10 @@ function updateKart(k,inp,dt,now){
     const kick=inp.drift&&now-k.kickT<.35;
     if(sd===k.driftDir)k.dragT=now;
     // nose: thrown out by the trigger, turned by the arrows (right = heading decreasing)
-    let rate=(kick?2.6*style:0)+(into>0?2.2*into*hand:1.6*into);
+    let rate=(kick?2.6:0)+(into>0?2.2*into:1.6*into);
     k.h-=k.driftDir*rate*dt;
     // travel direction chases the nose: barely during the trigger, normal grip after, hard when countering
-    const G=kick?.6:into<0?3:1.9/Math.sqrt(style);
+    const G=kick?.6:into<0?3:1.9;
     const gap=angWrap(k.h-k.mv);
     k.mv+=gap*Math.min(1,G*dt);
     const slip=Math.abs(angWrap(k.h-k.mv));
@@ -927,8 +927,9 @@ function updateKart(k,inp,dt,now){
     const boostOn=k.boost>0,topD=boostOn?k.boostTop:c.top*(k.isPlayer?1:k.skill*k.band);
     let Vn=k.spd;
     // draw peaks at 45°; the slip brake climbs steeply, so past ~60° the slide costs more than it gives
-    if(dragging)Vn+=.25*Vn*Math.sin(2*Math.min(slip,1.5))**2*dt;
-    Vn-=.3*Vn*Math.sin(Math.min(slip,1.5))**4*dt;
+    // per kart: CornerDrawFactor scales the draw, DriftEscapeForce how much the slide ploughs
+    if(dragging)Vn+=.25*(c.draw/.07)*Vn*Math.sin(2*Math.min(slip,1.5))**2*dt;
+    Vn-=.3*(1800/c.esc)*Vn*Math.sin(Math.min(slip,1.5))**4*dt;
     if(boostOn){if(Vn<topD)Vn+=72*dt;}
     else if(inp.throttle&&Vn<topD)Vn+=c.accel*.6*(1-.85*Vn/topD)*dt;
     if(Vn>topD*1.35)Vn=topD*1.35;
@@ -1242,7 +1243,7 @@ addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
 function onUpPress(){
   const now=performance.now()/1000;upAt=now;
   if(state==='race'&&player&&!player.finished&&!player.drifting&&now-player.driftEndAt<.4&&player.lastDriftDur>.55){
-    player.driftEndAt=-9;setBoost(player,.45,player.car.top+9);showMsg('瞬間加速！','gold');sfx.whoosh();
+    player.driftEndAt=-9;setBoost(player,.5,player.car.top+9);showMsg('瞬間加速！','gold');sfx.whoosh();
   }
 }
 const touchMode=!!(window.matchMedia&&matchMedia('(pointer: coarse)').matches);
@@ -1690,7 +1691,7 @@ function frame(){
       state='race';raceStart=now;lapStartAt=now;cEl.textContent='GO!';cEl.className='';void cEl.offsetWidth;cEl.className='tick';sfx.beep(true);
       setTimeout(()=>{if(state!=='countdown')cEl.hidden=true;},700);
       const held=(keys.up||touchMode)&&upAt>0,lead=now-upAt;
-      if(held&&lead<=.15){setBoost(player,1.7,player.car.top+18);showMsg('完美起步噴！','gold');sfx.whoosh();}
+      if(held&&lead<=.15){setBoost(player,1.35,player.car.top+18);showMsg('完美起步噴！','gold');sfx.whoosh();}
       else if(held&&lead<=.45){setBoost(player,1.1,player.car.top+13);showMsg('起步噴！','gold');sfx.whoosh();}
       else if(held&&lead<=1.6)showMsg('太早了','blue');
       for(const k of karts)if(!k.isPlayer&&!k.isRemote&&Math.random()<.5)setBoost(k,1,k.car.top+13);
