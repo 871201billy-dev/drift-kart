@@ -283,8 +283,8 @@ kbd{font:700 12px var(--body);padding:3px 7px;border-radius:6px;background:#fff;
         <li><span class="k"><kbd>Shift</kbd></span>按著方向鍵按 Shift 甩尾。Shift 按越久車身角度越大，路線由方向鍵控制：方向鍵回正就只是側滑，輕點左右交替＝小飄補氣</li>
         <li class="tip"><span class="k">托飄</span>甩尾中有節奏地點往彎內的方向鍵，可以一直撐住甩尾；方向鍵按住越久轉得越急，點一下只微調路線</li>
         <li class="tip"><span class="k">雙甩</span>甩尾中同方向再點 Shift，重新加大角度、多集一點氣</li>
-        <li class="tip"><span class="k">連飄</span>車身還沒甩開時往反方向點 Shift，車尾甩到另一邊，過 S 彎</li>
-        <li class="tip"><span class="k">鏡飄</span>甩尾中車身已經有角度時，按反方向＋Shift 並按住，車身會被慣性扭過去；按住約 1.2 秒可以轉滿 360 度，放開 Shift 後用方向微調，再按 ↑ 小噴出彎</li>
+        <li class="tip"><span class="k">連飄</span>甩尾中往反方向點一下 Shift，車尾甩到另一邊，過 S 彎</li>
+        <li class="tip"><span class="k">鏡飄</span>甩尾中按反方向＋Shift 並按住超過 0.2 秒，車身會被慣性扭過去，按越久轉越多，約 0.9 秒轉滿 360 度；按太久會轉過頭打滑，要自己用方向救回來，放開 Shift 後再按 ↑ 小噴出彎</li>
         <li class="tip"><span class="k">斷飄</span>反打方向鍵立刻收車，接著按 ↑ 瞬間加速</li>
         <li><span class="k"><kbd>Space</kbd><kbd>Ctrl</kbd></span>使用氮氣（最多存 2 個）</li>
         <li class="tip"><span class="k"><kbd>↑</kbd></span>甩尾放開後 0.4 秒內再按一次＝瞬間加速</li>
@@ -295,7 +295,7 @@ kbd{font:700 12px var(--body);padding:3px 7px;border-radius:6px;background:#fff;
       <ul class="keys" id="touchList" hidden>
         <li>手機會自動踩油門</li>
         <li>左下 ◀ ▶ 轉向。按著方向點「甩尾」開始甩，按越久甩越大</li>
-        <li>甩尾中點往彎內的方向＝托飄延長，同方向再點甩尾＝雙甩，反方向點＝連飄（車身已甩開時按住＝鏡飄），反打方向＝收車</li>
+        <li>甩尾中點往彎內的方向＝托飄延長，同方向再點甩尾＝雙甩，反方向點＝連飄（按住＝鏡飄），反打方向＝收車</li>
         <li>集滿氮氣條後按「氮氣」加速</li>
         <li>起步噴：倒數最後一秒，白條進到黃色區時點「氮氣」</li>
       </ul>
@@ -875,7 +875,7 @@ function setBoost(k,t,top,kind){
 }
 
 /* ---------- Physics ---------- */
-const G=36;
+const G=36,FLICK=3.2,CARVE=5;
 // tyre side force: linear in slip angle at first, then saturating at the grip limit
 const tyre=(alpha,C,Fmax)=>Fmax*Math.tanh(C*alpha/Math.max(Fmax,.01));
 function updateKart(k,inp,dt,now){
@@ -892,25 +892,29 @@ function updateKart(k,inp,dt,now){
   let u=k.vx*fx+k.vz*fz,vl=k.vx*fz-k.vz*fx;
   const sp=Math.abs(u);
   if(k.gr==null)k.gr=1;if(k.r==null)k.r=0;
+  let flick=0;
   // drift moves set a drift strength m (the slip angle the driver is asking for):
   // first press, same side again (雙甩), other side (連飄)
   if(press&&!k.air&&sd&&u>15){
     k.pressT=-9;
     if(!k.drifting){k.drifting=true;k.driftStart=now;k.kickT=now;k.driftDir=sd;k.m=.04*style;k.r-=sd*.12;}
-    else if(sd===k.driftDir){k.dbl=true;k.kickT=now;k.m=Math.min((k.m||0)+.22,.75*style);k.r-=sd*.25;if(k.isPlayer){k.gauge+=.05*c.gauge;showMsg('雙甩！','blue');}}
-    else if(Math.abs(Math.atan2(vl,u))>.2){
-      // 鏡飄: reverse direction + Shift mid-slide — grip lets go and the reverse flick plus the slide's inertia twist the body round
-      k.driftDir=sd;k.kickT=now;k.mirror=true;k.m=.35;k.r-=sd*1.4;if(k.isPlayer)showMsg('鏡飄！','gold');
-    }
-    else{k.driftDir=sd;k.kickT=now;k.m=Math.max(.1,(k.m||0)*.6);k.r-=sd*.4;if(k.isPlayer)showMsg('連飄！','blue');}
+    else if(sd===k.driftDir){k.dbl=true;k.kickT=now;k.m=Math.min((k.m||0)+.15,.75*style);flick+=sd*.05*style;if(k.isPlayer){k.gauge+=.05*c.gauge;showMsg('雙甩！','blue');}}
+    else{k.driftDir=sd;k.kickT=now;k.revT=now;k.m=Math.max(.1,(k.m||0)*.6);k.r-=sd*.4;if(k.isPlayer)showMsg('連飄！','blue');}
   }
+  // 鏡飄: keep the reverse Shift held past 0.2 s and grip lets go; the reverse flick plus the slide's inertia twist the body round
+  if(k.drifting&&k.revT!=null&&!k.mirror&&inp.drift&&now-k.revT>.2&&sd===k.driftDir&&!k.air){k.mirror=true;k.kickT=now;k.m=.35;k.r-=sd*1.2;k.revT=null;if(k.isPlayer)showMsg('鏡飄！','gold');}
+  if(k.revT!=null&&(!inp.drift||now-k.revT>.5))k.revT=null;
   const into=k.drifting?clamp(st*k.driftDir,-1,1):0;
   if(k.drifting&&!k.air){
+    if(k.pendFlick){flick+=k.pendFlick;k.pendFlick=0;}
     let m=k.m||0;
     // holding Shift through the first 0.35 s asks for a bigger angle; a tap stays small
     const kick=inp.drift&&now-k.kickT<.35&&into>-.3;
+    // while Shift is held in the window the body swings out (velocity untouched, so momentum carries on):
+    // ~20° for a full 0.35 s hold, a few degrees for a tap; after that the tyres decide what happens
+    if(kick)flick+=k.driftDir*FLICK*style*dt;
     // tapping toward the turn tops it back up (托飄)
-    if(tapInto&&!kick){m+=.15*style;k.r-=k.driftDir*.12;}
+    if(tapInto&&!kick){m+=.1*style;flick+=k.driftDir*.03*style;}
     m+=(kick?.9*style:0)*dt;
     // it fades on its own; steering in slows the fade, counter-steering kills it
     if(!k.mirror)m-=(.45-.3*Math.max(0,into)+Math.max(0,-into)*2.2)*dt;
@@ -918,13 +922,13 @@ function updateKart(k,inp,dt,now){
     // the mirror twist lasts while Shift is held (up to 1.6 s)
     if(k.mirror&&(!inp.drift||now-k.kickT>1.6))k.mirror=false;
   }
+  if(flick&&!k.air){k.h-=flick;fx=Math.sin(k.h);fz=Math.cos(k.h);u=k.vx*fx+k.vz*fz;vl=k.vx*fz-k.vz*fx;}
   if(k.drifting&&((now-k.kickT>.35&&(k.m||0)<.06&&!k.mirror)||Math.hypot(u,vl)<10)){k.drifting=false;k.mirror=false;k.dbl=false;k.m=0;k.lastDriftDur=now-k.driftStart;k.driftEndAt=now;}
   // the rear lets go in proportion to the drift strength and grips again as it fades
   const spin=k.drifting&&!!k.mirror;
-  const grT=k.drifting?(spin?.3:1-.45*Math.min(1,(k.m||0)/.35)):1;
+  const grT=k.drifting?(spin?.3:1-.72*Math.min(1,(k.m||0)/.3)):1;
   k.gr+=(grT-k.gr)*Math.min(1,dt*(grT<k.gr?12:4));
   // the slip angle the chassis is steered toward (+ = nose right of the velocity)
-  const bTarget=k.drifting?k.driftDir*(k.m||0)*(.85+.3*into):0;
   const sp0=Math.hypot(u,vl);
   if(!k.air){
     const grip=(k.onIce?.35:1)*(k.offroad?.75:1);
@@ -939,20 +943,22 @@ function updateKart(k,inp,dt,now){
     const n=4,h=dt/n;
     for(let s=0;s<n;s++){
       const ue=Math.max(Math.abs(u),6);
-      const af=Math.atan2(vl+a*k.r,ue)*sv-dL,ar=Math.atan2(vl-b*k.r,ue)*sv;
+      // while drifting the driver's hands hold the front wheels along the way the nose is actually travelling
+      // (natural opposite lock); the arrow keys steer from there
+      const fv=Math.atan2(vl+a*k.r,ue);
+      const dW=k.drifting&&!spin?fv*sv-st*.18*hand:dL,cw=Math.cos(dW),sw=Math.sin(dW);
+      const af=fv*sv-dW,ar=Math.atan2(vl-b*k.r,ue)*sv;
       const Ff=-tyre(af,Cf,FfMax)*sv,Fr=-tyre(ar,Cr,FrMax)*sv;
-      const du=-Ff*sn+vl*k.r,dv=Ff*cd+Fr-u*k.r;
-      let dr=(a*Ff*cd-b*Fr)/I;
-      // arcade limiter: past the max slip angle the nose is pulled back toward the velocity, so the kart never spins
+      const du=-Ff*sw+vl*k.r,dv=Ff*cw+Fr-u*k.r;
+      let dr=(a*Ff*cw-b*Fr)/I;
       // full-circle slip angle, so a kart pointing sideways or backwards is measured correctly
       const bt=Math.atan2(vl,u);
       // drift assist: a soft spring steers the chassis toward the requested slip angle; the tyres do the rest,
       // so the tail still overshoots, swings back and leaves crossing tracks
       // in the mirror twist there's no assist: the flick and inertia turn the body, the arrows nudge it
-      if(spin)dr-=k.driftDir*7.5*(inp.drift?1:0)+st*2.5;
+      if(spin)dr-=k.driftDir*9.5*(inp.drift?1:0)+st*2.5;
       // drift assist helps the tail out to the angle asked for, lets it run ~15° past that freely,
       // and only reins it in beyond that so the kart doesn't spin out
-      else if(k.drifting){const e=angWrap(bTarget-bt);if(e*k.driftDir>0)dr-=e*70;else{const over=Math.abs(e)-.26;if(over>0)dr+=k.driftDir*over*45;}}
       if(k.pbt!=null&&!spin)dr+=angWrap(bt-k.pbt)/h*(k.drifting?4:5);k.pbt=bt;
       u+=du*h;vl+=dv*h;k.r+=dr*h;k.h+=k.r*h;
     }
@@ -962,7 +968,7 @@ function updateKart(k,inp,dt,now){
     if(sp1>1&&sp1<sp0){const t=sp1+(sp0-sp1)*(k.drifting?.85:.6);u*=t/sp1;vl*=t/sp1;}
     // KartRider drift assist: nose and velocity carve into the turn together, harder the bigger the drift,
     // so a double drift actually tightens the line (holding the arrow in adds a little more)
-    if(k.drifting&&!spin)k.h-=k.driftDir*3.4*(k.m||0)*(.5+.7*Math.max(0,into))*Math.min(1,sp/18)*dt;
+    if(k.drifting&&!spin)k.h-=k.driftDir*CARVE*(k.m||0)*(k.m||0)*(.5+.7*Math.max(0,into))*Math.min(1,sp/18)*dt;
   }else{k.r*=Math.exp(-1.5*dt);k.h+=k.r*dt;}
   fx=Math.sin(k.h);fz=Math.cos(k.h);
   k.beta=Math.atan2(vl,u);k.slip=k.drifting?Math.min(1.2,Math.max(k.m||0,Math.abs(k.beta))):0;
@@ -973,11 +979,12 @@ function updateKart(k,inp,dt,now){
   if(k.air)fwd-=fwd*.04*dt;
   else{
     const acc=c.accel*(k.drifting?1-.4*Math.min(1,k.slip):1);
-    if(boosting){if(fwd<top)fwd+=72*dt;}
-    else if(inp.throttle){if(fwd<top)fwd+=acc*(1-.5*Math.max(0,fwd)/top)*dt;}
+    const tot=Math.hypot(fwd,vl);
+    if(boosting){if(tot<top)fwd+=72*dt;}
+    else if(inp.throttle){if(tot<top)fwd+=acc*(1-.5*Math.max(0,tot)/top)*dt;}
     if(inp.brake&&!boosting){if(fwd>.5)fwd-=55*dt;else fwd=Math.max(fwd-15*dt,-16);}
     if(!inp.throttle&&!inp.brake&&!boosting)fwd-=fwd*.45*dt;
-    if(fwd>top)fwd-=(fwd-top)*1.6*dt;
+    if(tot>top){const sc=1-Math.min(.5,(tot-top)/tot*1.6*dt);fwd*=sc;vl*=sc;}
     if(k.offroad)fwd-=fwd*TR.th.offDrag*dt;
     fwd-=G*.6*k.slope*dt;
     if(k.drifting)fwd-=fwd*.18*k.slip*k.slip*dt;
