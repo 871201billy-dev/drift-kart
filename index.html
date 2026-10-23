@@ -280,7 +280,7 @@ kbd{font:700 12px var(--body);padding:3px 7px;border-radius:6px;background:#fff;
         <li><span class="k"><kbd>↑</kbd><kbd>W</kbd></span>加速（放開會中斷氮氣）</li>
         <li><span class="k"><kbd>↓</kbd><kbd>S</kbd></span>煞車／倒車</li>
         <li><span class="k"><kbd>←</kbd><kbd>→</kbd></span>轉向</li>
-        <li><span class="k"><kbd>Shift</kbd></span>Shift 是甩尾啟動鍵：按下去車頭就順著方向鍵甩出去，按越久（最多約 0.5 秒）甩越大力；之後不管放不放開，甩尾都靠慣性延續，交給你用方向鍵拖。沒有甩尾模式，回正、斷胎、打轉全是物理算的</li>
+        <li><span class="k"><kbd>Shift</kbd></span>Shift 讓後輪變滑（像在冰上），同一個方向鍵就能把車頭甩開；最多維持約 0.5 秒，之後就算還按著抓地也會回來，甩尾靠慣性延續交給你拖。沒有甩尾模式，回正、斷胎、打轉全是物理算的</li>
         <li class="tip"><span class="k">自然飄</span>起飄後只按 ↑，角度會自己慢慢回正，太小就斷胎、速度掉一截</li>
         <li class="tip"><span class="k">拖飄</span>角度回到 40～45 度時連點往彎內的方向，跟回正力抗衡把角度撐住，車速會往上衝（可超過平跑極速）；按太久角度變大反而掉速</li>
         <li class="tip"><span class="k">反胎</span>起飄後先反打一下，讓角度更快回到最佳區間；反太多會直接斷胎</li>
@@ -905,7 +905,7 @@ function setBoost(k,t,top,kind){
 /* ---------- Physics ---------- */
 const G=36,FLICK=2.4,CARVE=5;
 // tyre side force: linear in slip angle at first, then saturating at the grip limit
-const TRIGMAX=.5,ESC=8,ICEREC=2.6,YAWA=1.0,TRIGK=5.8,SLIDEL=.8,DRAWK=.04,GSL=2.3,YAWK=8,YAWK2=5.5,FSAT=100,TYK=19;
+const TRIGMAX=.5,ESC=8,ICEREC=2.6,YAWA=1.0,TRIGK=2.4,SLIDEL=.8,DRAWK=.15,YAWK=8,YAWK2=5.5,FSAT=66,TYK=19;
 const tyre=(alpha,C,Fmax)=>Fmax*Math.tanh(C*alpha/Math.max(Fmax,.01));
 function updateKart(k,inp,dt,now){
   const c=k.car,style=1,hand=c.turn/1.9;
@@ -927,9 +927,8 @@ function updateKart(k,inp,dt,now){
   //  - speed: the engine pushes along the nose, a sideways slide scrubs speed
   let fwd,lat;
   if(!k.air){
-    // Shift starts a drift (DriftTrigger): from the moment it goes down, and for as long as it is held up to
-    // TRIGMAX, the rear lets go and the arrow throws the nose round — holding it longer throws harder. After
-    // that, held or not, the drift carries on by its own momentum and you work it with the arrows.
+    // Shift makes the rear light from the moment it goes down, for as long as it is held but at most TRIGMAX;
+    // after that the grip comes back even if it is still held, so a long hold can't turn into a straight slide
     if(inp.drift&&!k.shiftHeld)k.shiftT=now;k.shiftHeld=inp.drift;
     const iceT=inp.drift&&V>12&&now-(k.shiftT||-9)<TRIGMAX?1:0;
     k.ice=(k.ice||0)+(iceT-(k.ice||0))*Math.min(1,dt*(iceT?14:ICEREC));
@@ -952,18 +951,16 @@ function updateKart(k,inp,dt,now){
     k.h+=k.r*dt;
     // travel: tyre friction pulls it onto the long axis (nose, or tail when going tail-first)
     const gap=back?angWrap(k.h+Math.PI-mv):angWrap(k.h-mv);
-    // grip part (steep at small angles) plus a sliding part that keeps growing with the angle, so the wider the
-    // drift the tighter the line bends (tyre marks curl in) — and the more it costs (slide scrub below)
-    const Fs=FSAT*grip*(1-.35*k.ice);
-    let turn=(Fs*Math.tanh(TYK*gap)/Math.max(V,6)+GSL*grip*(1-.2*k.ice)*Math.sign(gap)*Math.max(0,Math.abs(gap)-.08))*dt;
+    const Fs=FSAT*grip*(1-.72*k.ice);
+    let turn=Fs*Math.tanh(TYK*gap)/Math.max(V,6)*dt;
     if(Math.abs(turn)>Math.abs(gap))turn=gap;
     mv+=turn;
     const sl=Math.abs(angWrap(k.h-mv));
     // CornerDraw: while the tyres are bending the line of a slide, part of that pull drives the kart on
     // (most at ~45°; KartRider's drag-drift speed comes from this)
     if(!back&&u>0)k.draw=(k.draw||0)+DRAWK*(c.draw/.07)*Math.abs(turn)*V*Math.sin(2*Math.min(sl,1.5))**2;
-    // a sideways slide scrubs speed (fitted to 9th-gen footage), less while the trigger has the rear loose
-    let Vn=V-.95*(1-.5*k.ice)*(1800/c.esc)*V*Math.abs(Math.sin(sl))**4.7*dt;
+    // a sideways slide scrubs speed (fitted to 9th-gen footage), much less with the rear "on ice"
+    let Vn=V-.95*(k.ice>.5?.3:1)*(1800/c.esc)*V*Math.abs(Math.sin(sl))**4.7*dt;
     if(V>.5){k.vx=Math.sin(mv)*Math.max(0,Vn);k.vz=Math.cos(mv)*Math.max(0,Vn);}
     if(sp<3)k.r*=Math.exp(-8*dt);
     fx=Math.sin(k.h);fz=Math.cos(k.h);
