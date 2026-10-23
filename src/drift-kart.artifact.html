@@ -927,7 +927,7 @@ function updateKart(k,inp,dt,now){
   if(!k.air){
     const grip=(k.onIce?.35:1)*(k.offroad?.75:1);
     const a=1.15,b=1.1,I=2.2*Math.sqrt(c.mass),Cf=300*hand,Cr=480; // stiffer rear = mild understeer, so the kart straightens itself
-    const FfMax=40*grip*hand*(spin?.5:1),FrMax=50*grip*k.gr;
+    const FfMax=44*grip*hand*(spin?.5:1),FrMax=55*grip*k.gr;
     // while drifting the kart is never treated as reversing, even when it points sideways or backwards
     const sv=!k.drifting&&u<-.5?-1:1;
     // the wheel can turn further the more the kart is sliding, so opposite lock can actually catch a slide
