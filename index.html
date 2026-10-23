@@ -1227,11 +1227,14 @@ const sfx=(function(){
   function init(){
     if(AC)return;try{
       AC=new(window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=muted?0:.5;master.connect(AC.destination);
-      const o1=AC.createOscillator(),o2=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();
-      o1.type='sawtooth';o2.type='square';f.type='lowpass';f.frequency.value=700;g.gain.value=0;
-      o1.connect(f);o2.connect(f);f.connect(g);g.connect(master);o1.start();o2.start();eng={o1,o2,g,f};
+      // engine: two slightly detuned smooth voices an octave apart give a clean, high kart whine (no low buzz),
+      // with a little vibrato so it doesn't sound static
+      const o1=AC.createOscillator(),o2=AC.createOscillator(),g2=AC.createGain(),f=AC.createBiquadFilter(),g=AC.createGain();
+      o1.type='triangle';o2.type='sine';g2.gain.value=.45;f.type='lowpass';f.frequency.value=1800;f.Q.value=.3;g.gain.value=0;
+      const lfo=AC.createOscillator(),lg=AC.createGain();lfo.frequency.value=7;lg.gain.value=3;lfo.connect(lg);lg.connect(o1.frequency);lfo.start();
+      o1.connect(f);o2.connect(g2);g2.connect(f);f.connect(g);g.connect(master);o1.start();o2.start();eng={o1,o2,g,f};
       const buf=AC.createBuffer(1,AC.sampleRate,AC.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
-      const n=AC.createBufferSource();n.buffer=buf;n.loop=true;const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=2200;bp.Q.value=4;const sg=AC.createGain();sg.gain.value=0;
+      const n=AC.createBufferSource();n.buffer=buf;n.loop=true;const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1500;bp.Q.value=1.2;const sg=AC.createGain();sg.gain.value=0;
       n.connect(bp);bp.connect(sg);sg.connect(master);n.start();skid={g:sg,buf};
     }catch(e){AC=null;}
   }
@@ -1240,9 +1243,9 @@ const sfx=(function(){
   return {
     init,
     toggle(){muted=!muted;if(master)master.gain.value=muted?0:.5;return muted;},
-    engine(speed,boost,running,drifting){if(!eng||!isFinite(speed))return;const t=AC.currentTime,fr=48+Math.abs(speed)*2.3+(boost?35:0);
-      eng.o1.frequency.setTargetAtTime(fr,t,.06);eng.o2.frequency.setTargetAtTime(fr*.5,t,.06);eng.f.frequency.setTargetAtTime(500+Math.abs(speed)*12,t,.1);
-      eng.g.gain.setTargetAtTime(running?.07:0,t,.15);skid.g.gain.setTargetAtTime(drifting?.05:0,t,.05);},
+    engine(speed,boost,running,drifting){if(!eng||!isFinite(speed))return;const t=AC.currentTime,v=Math.abs(speed),fr=110+v*4.6+(boost?60:0);
+      eng.o1.frequency.setTargetAtTime(fr,t,.08);eng.o2.frequency.setTargetAtTime(fr*2.01,t,.08);eng.f.frequency.setTargetAtTime(1200+v*25,t,.1);
+      eng.g.gain.setTargetAtTime(running?.05+Math.min(.03,v*.0006):0,t,.15);skid.g.gain.setTargetAtTime(drifting?.028:0,t,.08);},
     beep(hi){tone(hi?880:440,hi?.5:.18,'square',.13);},
     ding(){tone(1046,.12,'triangle',.15);setTimeout(()=>tone(1568,.18,'triangle',.15),90);},
     whoosh(){noise(.7,400,3000,.35);},
