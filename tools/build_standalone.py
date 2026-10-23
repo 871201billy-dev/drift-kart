@@ -27,6 +27,7 @@ rep("netNote(e&&e.code==='limit_reached'?'房間暫時滿了，請稍後再試�
 head = ('<!doctype html>\n<html lang="zh-Hant">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'
         '<style>[hidden]{display:none!important}html,body{margin:0}</style>\n</head>\n<body>\n')
-os.makedirs(os.path.dirname(out), exist_ok=True)
+if os.path.dirname(out):
+    os.makedirs(os.path.dirname(out), exist_ok=True)
 open(out, 'w', encoding='utf8').write(head + s + '\n</body>\n</html>\n')
 print('wrote', out)

@@ -20,3 +20,12 @@
 ## 多人連線
 
 選「多人連線」→「建立新房間」，把 4 碼房間代碼傳給朋友，朋友輸入代碼加入，房主按開始。連線透過公用的 MQTT 伺服器轉送（broker.emqx.io，連不上時改用 broker.hivemq.com），不需要兩台電腦直接互連，各自在家用不同網路也能玩。部分公司或學校網路可能會擋這類連線。
+
+## 開發
+
+- `src/drift-kart.artifact.html`：claude.ai Artifact 版本（使用平台的 room 連線）
+- `tools/build_standalone.py`：把它轉成這個網站的 `index.html`，連線換成 `tools/mqttroom.js`
+
+```
+python tools/build_standalone.py src/drift-kart.artifact.html index.html
+```

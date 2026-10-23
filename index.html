@@ -887,7 +887,7 @@ function updateKart(k,inp,dt,now){
   if(press&&!k.air&&sd&&k.fwd>15){
     k.pressT=-9;
     if(!k.drifting){k.drifting=true;k.driftStart=now;k.kickT=now;k.driftDir=sd;k.slip=.08*style;}
-    else if(sd===k.driftDir){k.slip=Math.min(k.slip+.1,.75*style);k.kickT=now;if(k.isPlayer){k.gauge+=.05*c.gauge;showMsg('雙甩！','blue');}}
+    else if(sd===k.driftDir){k.dbl=true;k.slip=Math.min(k.slip+.18,.75*style);k.kickT=now;if(k.isPlayer){k.gauge+=.05*c.gauge;showMsg('雙甩！','blue');}}
     else{k.driftDir=sd;k.slip=Math.max(.1,k.slip*.6);k.kickT=now;if(k.isPlayer)showMsg('連飄！','blue');}
   }
   let fx=Math.sin(k.h),fz=Math.cos(k.h);
@@ -904,9 +904,10 @@ function updateKart(k,inp,dt,now){
     const kick=inp.drift&&now-k.kickT<.35&&into>-.3;
     // tapping toward the turn tops the slip back up (托飄); just holding only slows the fade a little
     if(tapInto&&!kick)m+=.12*style;
-    if(!k.air){m+=(kick?.9*style:0)*dt;m-=(.45-.2*Math.max(0,into)+Math.max(0,-into)*2.2)*dt;}
-    k.slip=m=Math.min(m,.55*style);
-    if(m<.07||sp<10){k.drifting=false;k.slip=0;k.lastDriftDur=now-k.driftStart;k.driftEndAt=now;}
+    if(!k.air){m+=(kick?.9*style:0)*dt;m-=(.45-.3*Math.max(0,into)+Math.max(0,-into)*2.2)*dt;}
+    // a double drift is allowed past the single-drift cap
+    k.slip=m=Math.min(m,(k.dbl?.75:.55)*style);
+    if(m<.07||sp<10){k.drifting=false;k.dbl=false;k.slip=0;k.lastDriftDur=now-k.driftStart;k.driftEndAt=now;}
   }
   if(k.drifting){
     // travel direction carves with the slip angle; velocity turns with it
@@ -917,7 +918,9 @@ function updateKart(k,inp,dt,now){
     const hi=sp>60?Math.pow(sp/60,.4):1;
     // a tapped arrow nudges the line, a held arrow tightens it over ~0.45s
     const ramp=.35+.65*Math.min(1,(k.dirT||0)/.45);
-    const R=(st*ramp*c.turn*.7*(1.25+.7*m)+dd*.4*m)*Math.min(1,sp/18)*hi*ctrl;
+    // same base as normal steering, scaled up by the slip, so turning stays continuous when the drift fades out
+    const turnN=c.turn*.7*(1-.35*Math.min(1,sp/100));
+    const R=(st*ramp*turnN*(1+3.4*m)+dd*.4*m)*Math.min(1,sp/18)*hi*ctrl;
     // yaw rate has inertia: it builds and fades instead of following the key instantly
     k.om=(k.om||0)+(R-(k.om||0))*Math.min(1,dt*(k.air?1.5:5.5/Math.sqrt(c.mass)));
     k.h-=k.om*dt;
@@ -957,7 +960,11 @@ function updateKart(k,inp,dt,now){
       fwd-=fwd*(.03+.28*m*m)*dt;
     }
   }else if(!k.air){
-    lat*=Math.exp(-(k.onIce?2.2:now-k.driftEndAt<.5?4:9)*dt);
+    // tyres swing the velocity toward the nose; grip comes back smoothly after a drift instead of snapping
+    const grip=k.onIce?2.2:9-2.5*Math.exp(-(now-k.driftEndAt)/.3);
+    const spd=Math.hypot(fwd,lat);
+    if(spd>.5&&fwd>0){let b=Math.atan2(lat,fwd);const nb=b*Math.exp(-grip*dt),spd2=spd*(1-Math.abs(b-nb)*.25);fwd=spd2*Math.cos(nb);lat=spd2*Math.sin(nb);}
+    else lat*=Math.exp(-grip*dt);
   }
   if(k.drifting&&k.isPlayer&&!k.air){
     k.gauge+=(.35+k.slip*.6)*Math.max(0,fwd)/60*c.gauge*dt;
