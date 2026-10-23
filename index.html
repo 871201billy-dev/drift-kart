@@ -908,9 +908,11 @@ function updateKart(k,inp,dt,now){
     // angle carries on by inertia after you let go and can overshoot if you push it
     const kick=inp.drift&&now-k.kickT<.35;
     if(tapInto)k.bv+=.8*style;
-    const tq=(into>0?5*into:9*into)*hand+(kick?3*style:0);
+    // below ~45° a drift that isn't being fed with the arrow collapses quickly — keeping it alive is the skill
+    const weak=k.b<.78&&!kick?5*(1-k.b/.78)*(1-Math.max(0,into)):0;
+    const tq=(into>0?5*into:9*into)*hand+(kick?3*style:0)-weak;
     k.bv+=(tq-4.5*k.b-2.6*k.bv)*dt;k.b+=k.bv*dt;
-    if((now-k.kickT>.3&&k.b<.06&&k.bv<.3)||V<10){k.drifting=false;k.dbl=false;k.lastDriftDur=now-k.driftStart;k.driftEndAt=now;}
+    if((now-k.kickT>.3&&k.b<.15&&k.bv<.3)||V<10){k.drifting=false;k.dbl=false;k.lastDriftDur=now-k.driftStart;k.driftEndAt=now;}
   }
   if(k.drifting&&!k.air){
     // the slide's friction bends the line: the wider the angle, the tighter the arc and the more speed it eats
