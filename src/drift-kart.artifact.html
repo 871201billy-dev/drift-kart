@@ -354,24 +354,49 @@ const CARS=[
 const STATS=[['極速',c=>(c.top-48)/9],['加速',c=>(c.accel-26)/19],['操控',c=>(c.turn-1.6)/.65],['集氣',c=>(c.gauge-.8)/.65],['重量',c=>(c.mass-.65)/1.2]];
 const carById=id=>CARS.find(c=>c.id===id)||CARS[0];
 
+// Tracks are built KartRider-style from straights and constant-radius arcs, each corner sized for one way
+// of taking it (at top speed a grip turn needs about R50, a drift about R20):
+//   sweeper R80-120 — grip or a light drag       drift corner R35-50 — one drift, drag through it
+//   square R22-28 — cutting / 斷位               hairpin R16-20 180° — needs a double drift
+//   chicane R35-40 ±40° — linked drifts          long straights — nitro
+// ['S',len] straight, ['R'|'L',radius,degrees] arc; two ['S','A'] straights are solved so the loop closes and
+// an arc of 'A' degrees takes whatever turn completes the lap.
+function turtle(segs0,step=4){
+  let tot=0;for(const g of segs0)if(g[0]!=='S'&&g[2]!=='A')tot+=g[0]==='L'?g[2]:-g[2];
+  const segs=segs0.map(g=>g[0]!=='S'&&g[2]==='A'?[g[0],g[1],g[0]==='R'?360+tot:-360-tot]:g);
+  const run=lens=>{let x=0,z=0,h=0,ai=0;const pts=[];
+    for(const s of segs){
+      if(s[0]==='S'){const len=s[1]==='A'?lens[ai++]:s[1],n=Math.max(1,Math.round(len/step));for(let k=0;k<n;k++){pts.push([x,z]);x+=Math.sin(h)*len/n;z+=Math.cos(h)*len/n;}}
+      else{const R=s[1],sg=s[0]==='L'?1:-1,a=s[2]*Math.PI/180*sg,n=Math.max(2,Math.round(R*Math.abs(a)/step));
+        for(let k=0;k<n;k++){pts.push([x,z]);const cx=x+Math.cos(h)*R*sg,cz=z-Math.sin(h)*R*sg;h+=a/n;x=cx-Math.cos(h)*R*sg;z=cz+Math.sin(h)*R*sg;}}}
+    return {x,z,pts};};
+  const dirs=[];{let h=0;for(const s of segs){if(s[0]==='S'){if(s[1]==='A')dirs.push(h);}else h+=s[2]*Math.PI/180*(s[0]==='L'?1:-1);}}
+  const r0=run([0,0]),ax=Math.sin(dirs[0]),az=Math.cos(dirs[0]),bx=Math.sin(dirs[1]),bz=Math.cos(dirs[1]),det=ax*bz-az*bx;
+  return run([(-r0.x*bz+r0.z*bx)/det,(-ax*r0.z+az*r0.x)/det]).pts;
+}
 const TRACKS=[
-  {id:'meadow',name:'陽光草原',tag:'入門 · 丘陵 · 跳台',theme:'meadow',scale:1,hw:10,amp:8,freq:.006,pads:1,
-   desc:'起伏的草原丘陵，一個髮夾彎、一座跳台，適合練習托飄過彎。',
-   pts:[[0,-200],[150,-205],[300,-195],[385,-150],[405,-60],[375,15],[300,40],[215,40],[175,48],[162,70],[178,92],[220,100],[330,112],[390,160],[385,245],[310,285],[160,295],[10,275],[-110,235],[-195,160],[-210,60],[-170,-10],[-215,-85],[-185,-165],[-105,-200]],
-   elev:[[0,0],[.1,0],[.2,10],[.3,20],[.38,20],[.46,8],[.55,0],[.64,12],[.72,22],[.8,8],[.9,0]],jumps:[.75]},
-  {id:'canyon',name:'沙漠峽谷',tag:'中級 · 連續髮夾 · 2 跳台',theme:'desert',scale:1,hw:9.5,amp:18,freq:.008,pads:1,
-   desc:'峽谷裡的 Z 字形連續髮夾彎，爬上 30 公尺高台再飛下去，衝出路面會陷進沙地。',
-   pts:[[0,-220],[180,-225],[300,-195],[360,-120],[370,0],[340,110],[260,180],[150,215],[30,240],[-100,250],[-180,245],[-215,200],[-215,60],[-212,-5],[-200,-35],[-180,-42],[-162,-30],[-158,0],[-160,140],[-150,180],[-133,190],[-115,178],[-110,150],[-110,-120],[-80,-185],[-40,-215]],
-   elev:[[0,0],[.08,0],[.18,16],[.28,30],[.38,30],[.46,16],[.56,22],[.66,6],[.76,16],[.84,28],[.93,6]],jumps:[.38,.88]},
-  {id:'snow',name:'冰雪山道',tag:'進階 · 4 髮夾 · 冰面',theme:'snow',scale:1,hw:10,amp:26,freq:.007,pads:1,ice:5,
-   desc:'一路爬上 48 公尺的山頂，起點後就是三連髮夾彎，下山還有冰面和跳台。',
-   pts:[[0,-200],[120,-200],[195,-200],[222,-188],[230,-172],[220,-157],[195,-148],[120,-148],[55,-146],[30,-136],[24,-120],[32,-104],[58,-96],[130,-96],[195,-96],[222,-84],[230,-68],[220,-52],[195,-44],[80,-44],[-10,-40],[-60,0],[-75,90],[-30,180],[90,235],[220,215],[292,140],[305,30],[305,-120],[280,-225],[200,-260],[60,-262],[-60,-258],[-105,-245],[-122,-228],[-118,-210],[-95,-200],[-50,-200]],
-   elev:[[0,0],[.04,0],[.1,12],[.18,26],[.26,40],[.34,48],[.44,48],[.54,34],[.64,20],[.74,14],[.84,4],[.93,0]],jumps:[.76]},
-  {id:'city',name:'霓虹夜城',tag:'中級 · 夜間 · 高架跳台',theme:'city',scale:1,hw:11,amp:0,pads:2,
-   desc:'夜晚的城市街道，直角彎、S 彎和一個髮夾，從高架橋頂端直接飛下來。',
-   pts:[[0,-200],[200,-200],[240,-180],[250,-140],[250,-40],[240,-10],[210,3],[125,5],[100,14],[92,32],[100,50],[125,60],[230,62],[255,85],[260,130],[260,220],[240,250],[200,260],[60,260],[30,250],[20,225],[20,180],[5,150],[-20,140],[-60,140],[-85,160],[-95,200],[-110,240],[-150,260],[-220,250],[-250,220],[-260,150],[-260,-120],[-250,-170],[-220,-195],[-150,-200]],
-   elev:[[0,0],[.28,0],[.34,8],[.4,0],[.62,0],[.7,16],[.8,16],[.86,0]],jumps:[.79]},
+  {id:'meadow',name:'陽光草原',tag:'入門 · 每種彎各一個 · 跳台',theme:'meadow',scale:1,hw:13,amp:8,freq:.006,pads:1,
+   desc:'大彎、甩尾彎、S 彎、髮夾彎各一個，中間是長直線，最適合練甩尾和開氮氣。',
+   segs:[['S',200],['R',90,45],['S',50],['R',40,45],['S',90],['L',38,40],['R',38,40],['S',70],['R',45,90],
+     ['S','A'],['R',22,180],['S',70],['L',26,90],['S','A'],['R',42,'A']],
+   elev:[[0,0],[.2,0],[.26,10],[.32,10],[.4,4],[.47,14],[.56,4],[.66,12],[.7,8],[.8,0]],jumps:[.6]},
+  {id:'canyon',name:'沙漠峽谷',tag:'中級 · Z 字髮夾 · 2 跳台',theme:'desert',scale:1,hw:12.5,amp:18,freq:.008,pads:1,
+   desc:'高台上的 Z 字連續髮夾彎要靠雙甩，下坡飛一次，S 彎前再飛一次，衝出路面會陷進沙地。',
+   segs:[['S',200],['R',45,90],['S',120],['R',22,180],['S',100],['L',22,180],['S',120],['R',45,90],['S','A'],
+     ['R',28,90],['S',100],['L',38,40],['R',38,40],['S','A'],['R',46,'A']],
+   elev:[[0,0],[.08,0],[.17,14],[.25,24],[.6,24],[.66,20],[.77,4],[.83,10],[.9,4],[.96,0]],jumps:[.71,.85]},
+  {id:'snow',name:'冰雪山道',tag:'進階 · 四連髮夾 · 冰面',theme:'snow',scale:1,hw:12.5,amp:26,freq:.007,pads:1,ice:4,iceAt:[.5,.58,.76,.86],
+   desc:'起點後四連髮夾彎一路爬上 40 公尺山頂，再從大彎衝下山，下山路上有冰面和跳台。',
+   segs:[['S',160],['R',22,180],['S',60],['L',22,180],['S',60],['R',22,180],['S',60],['L',22,180],['S',110],['R',100,60],
+     ['S',90],['R',38,120],['S','A'],['R',30,90],['S',60],['L',36,40],['R',36,40],['S','A'],['R',40,'A']],
+   elev:[[0,0],[.08,0],[.14,8],[.2,16],[.26,24],[.32,32],[.38,40],[.44,40],[.54,28],[.62,22],[.74,8],[.8,4],[.9,0]],jumps:[.68]},
+  {id:'city',name:'霓虹夜城',tag:'中級 · 直角彎 · 高架跳台',theme:'city',scale:1,hw:13,amp:0,pads:2,
+   desc:'夜晚的街道：一連串直角彎練斷位，長長的高架大道開氮氣，尾端直接飛下來接髮夾彎。',
+   segs:[['S',260],['R',24,90],['S',120],['R',24,90],['S',80],['L',24,90],['S',80],['R',24,90],['S','A'],['R',22,180],
+     ['S',90],['L',26,90],['S',100],['L',36,40],['R',36,40],['S','A'],['R',45,'A']],
+   elev:[[0,0],[.48,0],[.53,16],[.62,16],[.66,0]],jumps:[.635]},
 ];
+for(const t of TRACKS)if(t.segs)t.pts=turtle(t.segs);
 const trackById=id=>TRACKS.find(t=>t.id===id)||TRACKS[0];
 
 const THEMES={
@@ -628,7 +653,7 @@ function buildTrack(def){
   if(def.ice){
     const iceMat=new THREE.MeshLambertMaterial({color:0xc9f1ff,emissive:0x4fb8e0,emissiveIntensity:.35,transparent:true,opacity:.88});
     for(let p=0;p<def.ice;p++){
-      const start=wrap(Math.floor(N*(p+.7)/def.ice)),len=26,w=rnd(7,10),o1=clamp(rnd(-HW,HW-w),-HW,HW-w);
+      const start=wrap(Math.floor(N*(def.iceAt?def.iceAt[p]:(p+.7)/def.ice))),len=26,w=rnd(7,10),o1=clamp(rnd(-HW,HW-w),-HW,HW-w);
       if(TR.PADS.some(q=>Math.abs(q-start)<40)||nearRamp(start)||nearRamp(start+len))continue;
       TR.ICE.push({i:start,len,o1,o2:o1+w});
       world.add(new THREE.Mesh(ribbon(start,len,o1,o1+w,.085,10),iceMat));
@@ -1062,16 +1087,19 @@ function aiInput(k,now,dt){
   const {PX,PZ,NX,NZ,HW}=TR;
   if(now>k.laneT){k.lane=rnd(-HW*.55,HW*.55);k.laneT=now+rnd(2,5);}
   k.laneS+=(k.lane-k.laneS)*Math.min(1,dt*.8);
-  const j=wrap(k.idx+Math.floor(12+Math.max(0,k.fwd)*.32));
-  const tx=PX[j]+NX[j]*k.laneS,tz=PZ[j]+NZ[j]*k.laneS;
-  const vh=Math.hypot(k.vx,k.vz)>5?Math.atan2(k.vx,k.vz):k.h,diff=angWrap(Math.atan2(tx-k.x,tz-k.z)-vh);
   const c=Math.max(curv(k.idx,55),curv(wrap(k.idx+10),30)*1.4);
+  // look less far ahead in tight corners (a hairpin is narrower than the usual look-ahead) and keep off the walls
+  const j=wrap(k.idx+Math.floor((12+Math.max(0,k.fwd)*.32)/(1+c*.6)));
+  const lane=k.laneS*(1-Math.min(.8,c*.4));
+  const tx=PX[j]+NX[j]*lane,tz=PZ[j]+NZ[j]*lane;
+  const vh=Math.hypot(k.vx,k.vz)>5?Math.atan2(k.vx,k.vz):k.h,diff=angWrap(Math.atan2(tx-k.x,tz-k.z)-vh);
   if(!k.isPlayer){const gap=(progress(player)-progress(k))/TR.N;k.band=clamp(1+gap*.22,.9,1.09);}else k.band=1;
   const ice=TR.ICE.length?.93:1;
-  const target=k.car.top*(k.isPlayer?.95:k.skill*k.band)*(1-Math.min(.5,c*.5))*ice;
+  const target=k.car.top*(k.isPlayer?.95:k.skill*k.band)*(1-Math.min(.6,c*.42))*ice;
   if(!k.isPlayer&&now>k.aiNitroT&&c<.15&&!k.air){setBoost(k,2.2,k.car.top+20);k.aiNitroT=now+rnd(9,18);}
   // in a slide it also eases off when the nose is already swinging fast, as a player would
-  const steer=clamp(-diff*2.6+(k.drifting?k.r*.45:0),-1,1),want=!k.air&&k.fwd>32&&c>.85&&Math.abs(diff)>.06;
+  // the AI drifts ordinary corners; hairpins it takes slowly on grip
+  const steer=clamp(-diff*2.6+(k.drifting?k.r*.45:0),-1,1),want=!k.air&&k.fwd>32&&c>.85&&c<2.2&&Math.abs(diff)>.06;
   // like real players: a short Shift tap (~0.2 s) to start the drift, then drive it with the arrows
   if(want&&!k.drifting&&now-(k.aiShiftT||-9)>1)k.aiShiftT=now;
   return {throttle:k.fwd<target,brake:k.fwd>target+9&&!k.drifting,steer,drift:now-(k.aiShiftT||-9)<.2,nitro:false};
