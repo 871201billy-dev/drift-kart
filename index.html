@@ -890,46 +890,59 @@ function updateKart(k,inp,dt,now){
   let u=k.vx*fx+k.vz*fz,vl=k.vx*fz-k.vz*fx;
   const sp=Math.abs(u),V=Math.hypot(k.vx,k.vz);
   if(k.r==null)k.r=0;
-  // Drift moves. The drift is described by one thing: the slip angle k.b (how far the nose points into the turn
-  // from the direction of travel) and how fast it is swinging, k.bv. Keys push on that swing; nothing else is scripted.
+  // KartRider-style drift, after the kart parameters players have measured in the offline build:
+  // the nose (k.h) and the direction of travel (mv) are separate; the drift angle is the gap between them.
+  //  - DriftTrigger: while Shift is held in the first 0.35 s the tyres are on "ice" and the nose is thrown out
+  //  - DriftSlip:    after that the travel direction chases the nose at a fixed grip rate, so with no input the
+  //                  angle closes by itself (自然飄) and below ~10° the tyre breaks (斷胎)
+  //  - arrows turn the nose: into the turn opens the angle, counter-steer swings it back and grips harder
+  //  - CornerDraw:   while you work the arrow (拖飄) the grip pulling the travel line round is partly turned into
+  //                  forward speed, most at ~45°; SlipBrake: wide angles bleed speed
+  const mv0=Math.atan2(k.vx,k.vz);
   if(press&&!k.air&&sd&&u>15){
     k.pressT=-9;
-    if(!k.drifting){k.drifting=true;k.driftStart=now;k.kickT=now;k.driftDir=sd;k.dbl=false;k.b=Math.max(0,sd*Math.atan2(vl,u));k.bv=.3*style;k.dragT=-9;}
-    // 雙甩: a hard extra swing on the same side — easy to overdo, you catch it with the arrows
-    else if(sd===k.driftDir){k.dbl=true;k.kickT=now;k.bv+=2.2*style;if(k.isPlayer){k.gauge+=.05*c.gauge;showMsg('雙甩！','blue');}}
-    // reverse + Shift: the same slide seen from the other side, plus a fresh swing that way
-    else{k.driftDir=sd;k.kickT=now;k.b=-k.b;k.bv=-k.bv+.6*style;}
+    if(!k.drifting){k.drifting=true;k.driftStart=now;k.kickT=now;k.driftDir=sd;k.dbl=false;k.dragT=-9;k.mv=mv0;k.spd=V;}
+    // 雙甩: another trigger on the same side — another throw of the nose, easy to overdo
+    else if(sd===k.driftDir){k.dbl=true;k.kickT=now;if(k.isPlayer){k.gauge+=.05*c.gauge;showMsg('雙甩！','blue');}}
+    // reverse + Shift: a fresh trigger the other way
+    else{k.driftDir=sd;k.kickT=now;}
   }
   const into=k.drifting?clamp(st*k.driftDir,-1,1):0;
   let fwd,lat;
   if(k.drifting&&!k.air){
-    // 自然飄: once thrown out, the angle keeps closing by itself (a steady recentring pull) until the tyre breaks.
-    // Shift held in the first 0.3 s throws it out hard (a tap stays a small 點飄); the arrow into the turn fights
-    // the recentring (longer presses = wider, tighter line), counter-steer (反胎) closes it faster.
-    const kick=inp.drift&&now-k.kickT<.3;
-    if(tapInto)k.bv+=.35*style;
-    if(into>0)k.dragT=now;
-    const tq=(kick?10*style:0)+(into>0?5.5*into*hand:7*into)-4.2*Math.sign(k.b)/Math.sqrt(c.mass)*(kick?0:1);
-    k.bv+=(tq-3.2*k.bv-1.2*k.b)*dt;k.b+=k.bv*dt;
-    // 斷胎: the angle has closed (or it was countered past zero) — the slide breaks and speed drops at once
-    if((now-k.kickT>.3&&k.b<.17)||V<10){k.drifting=false;k.dbl=false;k.lastDriftDur=now-k.driftStart;k.driftEndAt=now;
-      const kept=.94;k.vx*=kept;k.vz*=kept;}
-  }
-  if(k.drifting&&!k.air){
-    // the slide's friction bends the line: the wider the angle, the tighter the arc and the more speed it eats
-    const s=Math.sin(clamp(Math.abs(k.b),0,1.5)),grip=(k.onIce?.4:1)*(k.offroad?.7:1);
-    const h0=k.h;
-    let vh=Math.atan2(k.vx,k.vz),Vn=V;
-    vh-=Math.sign(k.b||1)*k.driftDir*120*s*grip/Math.max(V,8)*dt;
-    Vn-=V*.28*s*s*dt;
-    const ab=Math.abs(k.b),zone=ab>.6&&ab<.87&&now-(k.dragT||-9)<.35&&now-k.driftStart>.4;
-    k.dragging=zone;
-    if(zone&&Vn<c.top*1.35)Vn+=26*dt;
-    k.h=vh-k.driftDir*k.b;
-    k.r=angWrap(k.h-h0)/Math.max(dt,1e-4);
+    if(k.mv==null){k.mv=mv0;k.spd=V;}
+    const kick=inp.drift&&now-k.kickT<.35;
+    if(sd===k.driftDir)k.dragT=now;
+    // nose: thrown out by the trigger, turned by the arrows (right = heading decreasing)
+    let rate=(kick?2.6*style:0)+(into>0?2.2*into*hand:1.6*into);
+    k.h-=k.driftDir*rate*dt;
+    // travel direction chases the nose: barely during the trigger, normal grip after, hard when countering
+    const G=kick?.6:into<0?3:1.9/Math.sqrt(style);
+    const gap=angWrap(k.h-k.mv);
+    k.mv+=gap*Math.min(1,G*dt);
+    const slip=Math.abs(angWrap(k.h-k.mv));
+    // speed: corner draw while dragging, slip brake always, engine only up to top, extra speed fades slowly
+    const dragging=!kick&&now-k.dragT<.3&&now-k.driftStart>.35;
+    k.dragging=dragging;
+    const boostOn=k.boost>0,topD=boostOn?k.boostTop:c.top*(k.isPlayer?1:k.skill*k.band);
+    let Vn=k.spd;
+    // draw peaks at 45°; the slip brake climbs steeply, so past ~60° the slide costs more than it gives
+    if(dragging)Vn+=.25*Vn*Math.sin(2*Math.min(slip,1.5))**2*dt;
+    Vn-=.3*Vn*Math.sin(Math.min(slip,1.5))**4*dt;
+    if(boostOn){if(Vn<topD)Vn+=72*dt;}
+    else if(inp.throttle&&Vn<topD)Vn+=c.accel*.6*(1-.85*Vn/topD)*dt;
+    if(Vn>topD*1.35)Vn=topD*1.35;
+    if(Vn>topD&&!dragging)Vn-=(Vn-topD)*.8*dt;
+    if(k.offroad)Vn-=Vn*TR.th.offDrag*dt;
+    Vn-=36*.6*k.slope*dt;
+    k.spd=Math.max(0,Vn);
+    k.vx=Math.sin(k.mv)*k.spd;k.vz=Math.cos(k.mv)*k.spd;
+    k.r=-k.driftDir*rate;
+    // 斷胎: the travel line has caught up with the nose
+    if((now-k.kickT>.35&&slip<.17)||k.spd<10){k.drifting=false;k.dbl=false;k.lastDriftDur=now-k.driftStart;k.driftEndAt=now;k.vx*=.96;k.vz*=.96;k.mv=null;}
     fx=Math.sin(k.h);fz=Math.cos(k.h);
-    const vx=Math.sin(vh)*Vn,vz=Math.cos(vh)*Vn;
-    u=vx*fx+vz*fz;vl=vx*fz-vz*fx;
+    u=k.vx*fx+k.vz*fz;vl=k.vx*fz-k.vz*fx;
+    k.b=slip;
   }else if(!k.air){
     const sp0=Math.hypot(u,vl);
     const grip=(k.onIce?.35:1)*(k.offroad?.75:1);
@@ -955,15 +968,15 @@ function updateKart(k,inp,dt,now){
     const sp1=Math.hypot(u,vl);
     if(sp1>1&&sp1<sp0){const t=sp1+(sp0-sp1)*.6;u*=t/sp1;vl*=t/sp1;}
     fx=Math.sin(k.h);fz=Math.cos(k.h);
-  }else{k.r*=Math.exp(-1.5*dt);k.h+=k.r*dt;fx=Math.sin(k.h);fz=Math.cos(k.h);}
-  k.beta=k.drifting?k.driftDir*k.b:Math.atan2(vl,u);
+  }else{k.r*=Math.exp(-1.5*dt);k.h+=k.r*dt;fx=Math.sin(k.h);fz=Math.cos(k.h);k.mv=null;}
+  k.beta=k.drifting?k.driftDir*(k.b||0):Math.atan2(vl,u);
   k.slip=k.drifting?Math.min(1.2,Math.abs(k.b)):0;
   if(k.boost>0&&!inp.throttle&&!k.air)k.boost=0;
   k.yawT=0;k.yawV=(k.yawV||0)+((0-k.yawOff)*70-(k.yawV||0)*8)*dt;k.yawOff+=k.yawV*dt;
   const boosting=k.boost>0,top=Math.max(boosting?k.boostTop:c.top*(k.isPlayer?1:k.skill*k.band),k.drifting&&k.dragging?c.top*1.35:0);
   fwd=u;lat=vl;
   if(k.air)fwd-=fwd*.04*dt;
-  else{
+  else if(!k.drifting){
     // while sliding the rear tyres can't put the power down fully
     const acc=c.accel*(k.drifting?1-.6*Math.sin(Math.min(1.5,k.slip)):1);
     const tot=Math.hypot(fwd,lat);
@@ -1030,7 +1043,7 @@ function trackContact(k,now,dt){
       const keep=1-.5*hit*hit/Math.sqrt(k.car.mass);k.vx*=keep;k.vz*=keep;
       // the nose swings toward the wall line instead of the kart spinning off it
       k.h+=angWrap(Math.atan2(k.vx,k.vz)-k.h)*.5*hit;k.r*=1-hit;
-      if(k.drifting){k.b*=.6;k.bv=(k.bv||0)*.3;}
+      if(k.drifting){k.drifting=false;k.dbl=false;k.mv=null;k.lastDriftDur=0;k.driftEndAt=now;}
       if(k.isPlayer&&Math.abs(vn)>8){sfx.bump();shake=.12+.15*hit;}
     }
     // light rubbing while pressed against the wall
@@ -1349,7 +1362,7 @@ function respawn(){
   if(state!=='race'||!player||player.finished)return;
   const now=performance.now()/1000;if(now-respawnAt<1.5)return;respawnAt=now;
   const i=player.idx;
-  Object.assign(player,{x:TR.PX[i],z:TR.PZ[i],y:TR.HY[i],h:TR.HA[i],vx:0,vz:0,fwd:0,lat:0,vy:0,air:false,drifting:false,slip:0,yawOff:0,yawV:0,yawT:0,boost:0,steerS:0,wrongT:0,om:0,r:0,gr:1});
+  Object.assign(player,{x:TR.PX[i],z:TR.PZ[i],y:TR.HY[i],h:TR.HA[i],vx:0,vz:0,fwd:0,lat:0,vy:0,air:false,drifting:false,mv:null,slip:0,yawOff:0,yawV:0,yawT:0,boost:0,steerS:0,wrongT:0,om:0,r:0,gr:1});
   player.sk=null;showMsg('復位','blue');
 }
 function togglePause(force){
