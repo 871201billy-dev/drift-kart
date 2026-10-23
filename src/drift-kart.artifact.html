@@ -898,17 +898,20 @@ function updateKart(k,inp,dt,now){
     // reverse + Shift: a fresh trigger the other way
     else{k.driftDir=sd;k.kickT=now;}
   }
-  const into=k.drifting?clamp(st*k.driftDir,-1,1):0;
+  // in a drift the arrows act at once (the smoothing is only for grip steering)
+  const into=k.drifting?clamp((inp.dir!=null?inp.dir:st)*k.driftDir,-1,1):0;
   let fwd,lat;
   if(k.drifting&&!k.air){
     if(k.mv==null){k.mv=mv0;k.spd=V;}
-    const kick=inp.drift&&now-k.kickT<.35;
+    const kick=inp.drift&&now-k.kickT<.6; // holding Shift longer keeps the tyres sliding longer
     if(sd===k.driftDir)k.dragT=now;
     // nose: thrown out by the trigger, turned by the arrows (right = heading decreasing)
-    let rate=(kick?2.6:0)+(into>0?2.2*into:1.6*into);
+    // Shift mostly takes the grip away (the travel line barely follows), so the arrow can swing the nose;
+    // the throw of its own is small (video: ~35-45° 0.3 s after Shift)
+    let rate=into<0?into*(inp.drift?2.1:1.2):(kick?.5:0)+2.2*into;
     k.h-=k.driftDir*rate*dt;
     // travel direction chases the nose: barely during the trigger, normal grip after, hard when countering
-    const G=kick?.6:into<0?3:1.9;
+    const G=into<0?(inp.drift?3.5:2.5):kick?.6:1.9;
     const gap=angWrap(k.h-k.mv);
     k.mv+=gap*Math.min(1,G*dt);
     const slip=Math.abs(angWrap(k.h-k.mv));
@@ -933,7 +936,7 @@ function updateKart(k,inp,dt,now){
     k.vx=Math.sin(k.mv)*k.spd;k.vz=Math.cos(k.mv)*k.spd;
     k.r=-k.driftDir*rate;
     // 斷胎: the travel line has caught up with the nose
-    if((now-k.kickT>.35&&slip<.17)||k.spd<10){k.drifting=false;k.dbl=false;k.lastDriftDur=now-k.driftStart;k.driftEndAt=now;k.vx*=.96;k.vz*=.96;k.mv=null;}
+    if((now-k.kickT>.35&&slip<.17)||k.spd<10){k.drifting=false;k.dbl=false;k.lastDriftDur=now-k.driftStart;k.driftEndAt=now;k.vx*=.985;k.vz*=.985;k.mv=null;}
     fx=Math.sin(k.h);fz=Math.cos(k.h);
     u=k.vx*fx+k.vz*fz;vl=k.vx*fz-k.vz*fx;
     k.b=slip;
@@ -1217,7 +1220,7 @@ const sfx=(function(){
 })();
 
 /* ---------- Input ---------- */
-const keys={up:false,down:false,left:false,right:false,drift:false,nitro:false};
+const keys={up:false,down:false,left:false,right:false,drift:false,nitro:false,lastH:null};
 const KEYMAP={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ShiftLeft:'drift',ShiftRight:'drift',Space:'nitro',ControlLeft:'nitro',ControlRight:'nitro'};
 let upAt=-9;
 const typing=e=>e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA');
@@ -1225,6 +1228,7 @@ addEventListener('keydown',e=>{
   if(typing(e))return;
   const k=KEYMAP[e.code];
   if(k&&!$('#pause').hidden)return;
+  if((k==='left'||k==='right')&&!keys[k])keys.lastH=k;
   if(k&&state!=='menu'&&state!=='results'){e.preventDefault();if(k==='up'&&!keys.up)onUpPress();keys[k]=true;}
   else if(k)keys[k]=true;
   if(e.code==='KeyM')toggleMute();
@@ -1600,7 +1604,8 @@ function simulate(dt,now){
     if(k.isRemote)continue;
     let inp;
     if(k.isPlayer&&!k.finished){
-      const target=(keys.right?1:0)-(keys.left?1:0);
+      // both arrows held: the one pressed last wins, as in KartRider
+      const target=keys.left&&keys.right?(keys.lastH==='left'?-1:1):(keys.right?1:0)-(keys.left?1:0);
       k.steerS+=(target-k.steerS)*Math.min(1,dt*5);
       inp={throttle:keys.up||(touchMode&&!keys.down),brake:keys.down,steer:k.steerS,dir:target,drift:keys.drift,nitro:keys.nitro};
     }else if(k.isPlayer){inp={throttle:false,brake:false,steer:0,drift:false,nitro:false};k.boost=0;k.vx*=1-1.1*dt;k.vz*=1-1.1*dt;}
