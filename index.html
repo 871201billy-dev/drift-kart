@@ -283,7 +283,8 @@ kbd{font:700 12px var(--body);padding:3px 7px;border-radius:6px;background:#fff;
         <li><span class="k"><kbd>Shift</kbd></span>按著方向鍵按 Shift 甩尾。Shift 按越久車身角度越大，路線由方向鍵控制：方向鍵回正就只是側滑，輕點左右交替＝小飄補氣</li>
         <li class="tip"><span class="k">托飄</span>甩尾中有節奏地點往彎內的方向鍵，可以一直撐住甩尾；方向鍵按住越久轉得越急，點一下只微調路線</li>
         <li class="tip"><span class="k">雙甩</span>甩尾中同方向再點 Shift，重新加大角度、多集一點氣</li>
-        <li class="tip"><span class="k">連飄</span>甩尾中往反方向點 Shift，車尾直接甩到另一邊，過 S 彎</li>
+        <li class="tip"><span class="k">連飄</span>車身還沒甩開時往反方向點 Shift，車尾甩到另一邊，過 S 彎</li>
+        <li class="tip"><span class="k">鏡飄</span>甩尾中車身已經有角度時，按反方向＋Shift 並按住，車身會被慣性扭過去；按住約 1.2 秒可以轉滿 360 度，放開 Shift 後用方向微調，再按 ↑ 小噴出彎</li>
         <li class="tip"><span class="k">斷飄</span>反打方向鍵立刻收車，接著按 ↑ 瞬間加速</li>
         <li><span class="k"><kbd>Space</kbd><kbd>Ctrl</kbd></span>使用氮氣（最多存 2 個）</li>
         <li class="tip"><span class="k"><kbd>↑</kbd></span>甩尾放開後 0.4 秒內再按一次＝瞬間加速</li>
@@ -294,7 +295,7 @@ kbd{font:700 12px var(--body);padding:3px 7px;border-radius:6px;background:#fff;
       <ul class="keys" id="touchList" hidden>
         <li>手機會自動踩油門</li>
         <li>左下 ◀ ▶ 轉向。按著方向點「甩尾」開始甩，按越久甩越大</li>
-        <li>甩尾中點往彎內的方向＝托飄延長，同方向再點甩尾＝雙甩，反方向點＝連飄，反打方向＝收車</li>
+        <li>甩尾中點往彎內的方向＝托飄延長，同方向再點甩尾＝雙甩，反方向點＝連飄（車身已甩開時按住＝鏡飄），反打方向＝收車</li>
         <li>集滿氮氣條後按「氮氣」加速</li>
         <li>起步噴：倒數最後一秒，白條進到黃色區時點「氮氣」</li>
       </ul>
@@ -349,14 +350,14 @@ const fmt=t=>{if(!isFinite(t))return '--';const m=Math.floor(t/60),s=t-m*60;retu
 /* ---------- Data ---------- */
 const LAPS=3,CURB=1.6;
 const CARS=[
-  {id:'standard',name:'標準號',type:'平衡型',desc:'各項能力平均，最好上手，適合剛開始玩。',color:0xffd23f,helmet:0xe8243c,top:60,accel:35,turn:1.9,gauge:1.0,dgrip:1.6,mass:1.0,w:1,wing:1},
-  {id:'comet',name:'彗星',type:'極速型',desc:'直線極速最高，可是起步和出彎比較慢，要靠甩尾保住速度。',color:0x1f6fff,helmet:0xffffff,top:64.5,accel:29,turn:1.72,gauge:.9,dgrip:1.7,mass:1.05,w:.95,wing:2},
-  {id:'bolt',name:'閃電',type:'加速型',desc:'油門一踩就到頂，撞牆後也能馬上追回來，極速稍低。',color:0x2ecc71,helmet:0x22242c,top:58,accel:44,turn:1.92,gauge:.95,dgrip:1.6,mass:.95,w:.95,wing:1},
-  {id:'swallow',name:'燕子',type:'操控型',desc:'轉向最靈敏，髮夾彎和冰雪山道的好幫手，車身最輕。',color:0x3de1ff,helmet:0xff3d7f,top:58.5,accel:36,turn:2.2,gauge:1.0,dgrip:1.8,mass:.8,w:.9,wing:0},
-  {id:'tornado',name:'旋風',type:'甩尾型',desc:'甩尾滑得最遠，氮氣集得最快，適合愛甩的人。',color:0xff3d7f,helmet:0xfff1a8,top:59.5,accel:34,turn:1.88,gauge:1.4,dgrip:1.25,mass:.95,w:1,wing:1},
-  {id:'rhino',name:'犀牛',type:'重量型',desc:'車身最重，撞到別人不太減速，反而能把對手擠開。',color:0xa35cff,helmet:0xffd23f,top:61,accel:31,turn:1.7,gauge:.95,dgrip:1.7,mass:1.8,w:1.18,wing:2},
+  {id:'standard',name:'標準號',type:'平衡型',desc:'各項能力平均，最好上手，適合剛開始玩。',color:0xffd23f,helmet:0xe8243c,top:52,accel:35,turn:1.9,gauge:1.0,dgrip:1.6,mass:1.0,w:1,wing:1},
+  {id:'comet',name:'彗星',type:'極速型',desc:'直線極速最高，可是起步和出彎比較慢，要靠甩尾保住速度。',color:0x1f6fff,helmet:0xffffff,top:56,accel:29,turn:1.72,gauge:.9,dgrip:1.7,mass:1.05,w:.95,wing:2},
+  {id:'bolt',name:'閃電',type:'加速型',desc:'油門一踩就到頂，撞牆後也能馬上追回來，極速稍低。',color:0x2ecc71,helmet:0x22242c,top:50.5,accel:44,turn:1.92,gauge:.95,dgrip:1.6,mass:.95,w:.95,wing:1},
+  {id:'swallow',name:'燕子',type:'操控型',desc:'轉向最靈敏，髮夾彎和冰雪山道的好幫手，車身最輕。',color:0x3de1ff,helmet:0xff3d7f,top:51,accel:36,turn:2.2,gauge:1.0,dgrip:1.8,mass:.8,w:.9,wing:0},
+  {id:'tornado',name:'旋風',type:'甩尾型',desc:'甩尾滑得最遠，氮氣集得最快，適合愛甩的人。',color:0xff3d7f,helmet:0xfff1a8,top:52,accel:34,turn:1.88,gauge:1.4,dgrip:1.25,mass:.95,w:1,wing:1},
+  {id:'rhino',name:'犀牛',type:'重量型',desc:'車身最重，撞到別人不太減速，反而能把對手擠開。',color:0xa35cff,helmet:0xffd23f,top:53,accel:31,turn:1.7,gauge:.95,dgrip:1.7,mass:1.8,w:1.18,wing:2},
 ];
-const STATS=[['極速',c=>(c.top-56)/9],['加速',c=>(c.accel-26)/19],['操控',c=>(c.turn-1.6)/.65],['集氣',c=>(c.gauge-.8)/.65],['重量',c=>(c.mass-.65)/1.2]];
+const STATS=[['極速',c=>(c.top-48)/9],['加速',c=>(c.accel-26)/19],['操控',c=>(c.turn-1.6)/.65],['集氣',c=>(c.gauge-.8)/.65],['重量',c=>(c.mass-.65)/1.2]];
 const carById=id=>CARS.find(c=>c.id===id)||CARS[0];
 
 const TRACKS=[
@@ -864,7 +865,7 @@ function placeKart(k,slot){
   const row=Math.floor(slot/2),i=wrap(-12-row*7),o=(slot%2?-1:1)*TR.HW*.42;
   Object.assign(k,{x:TR.PX[i]+TR.NX[i]*o,z:TR.PZ[i]+TR.NZ[i]*o,y:TR.HY[i],pitch:0,slope:0,h:TR.HA[i],vx:0,vz:0,fwd:0,lat:0,idx:i,lap:0,half:true,
     drifting:false,driftStart:0,driftEndAt:-9,lastDriftDur:0,gauge:0,nitro:0,boost:0,boostTop:k.car.top,nitroHeld:false,
-    finished:false,finishTime:0,steerS:0,steerIn:0,lane:o*.6,laneS:o,laneT:0,aiNitroT:rnd(9,16),band:1,offroad:false,onIce:false,wrongT:0,d:o,yawOff:0,hop:0,driftDir:0,slip:0,vy:0,air:false,airT:0,driftHeld:false,land:0,drag:false,aiDrift:false,om:0,prevH:null,prevF:null,rl:0,rv:0,pt:0,pv:0});
+    finished:false,finishTime:0,steerS:0,steerIn:0,lane:o*.6,laneS:o,laneT:0,aiNitroT:rnd(9,16),band:1,offroad:false,onIce:false,wrongT:0,d:o,yawOff:0,hop:0,driftDir:0,slip:0,vy:0,air:false,airT:0,driftHeld:false,land:0,drag:false,aiDrift:false,om:0,r:0,gr:1,beta:0,prevH:null,prevF:null,rl:0,rv:0,pt:0,pv:0});
   syncModel(k,0);
 }
 function setBoost(k,t,top,kind){
@@ -875,8 +876,10 @@ function setBoost(k,t,top,kind){
 
 /* ---------- Physics ---------- */
 const G=36;
+// tyre side force: linear in slip angle at first, then saturating at the grip limit
+const tyre=(alpha,C,Fmax)=>Fmax*Math.tanh(C*alpha/Math.max(Fmax,.01));
 function updateKart(k,inp,dt,now){
-  const c=k.car,sp=Math.abs(k.fwd),style=Math.min(1.3,1.6/c.dgrip);
+  const c=k.car,style=Math.min(1.3,1.6/c.dgrip),hand=c.turn/1.9;
   const st=inp.steer,sd=inp.dir!=null?inp.dir:(Math.abs(st)>.3?Math.sign(st):0);
   if(inp.drift&&!k.driftHeld)k.pressT=now;k.driftHeld=inp.drift;
   // a Shift tap is buffered briefly so Shift and arrow can land in either order
@@ -884,67 +887,86 @@ function updateKart(k,inp,dt,now){
   // how long the arrow has been held, and whether it was just tapped toward the drift side
   if(sd&&sd===k.lastSd)k.dirT=(k.dirT||0)+dt;else k.dirT=0;
   const tapInto=k.drifting&&sd&&sd===k.driftDir&&k.lastSd!==sd;k.lastSd=sd;
-  // drift moves: tap = kick, same side again = double drift, other side = chain drift
-  if(press&&!k.air&&sd&&k.fwd>15){
-    k.pressT=-9;
-    if(!k.drifting){k.drifting=true;k.driftStart=now;k.kickT=now;k.driftDir=sd;k.slip=.04*style;k.yawV=(k.yawV||0)-sd*2.2;}
-    else if(sd===k.driftDir){k.dbl=true;k.slip=Math.min(k.slip+.22,.75*style);k.kickT=now;k.yawV=(k.yawV||0)-sd*2.6;if(k.isPlayer){k.gauge+=.05*c.gauge;showMsg('雙甩！','blue');}}
-    else{k.driftDir=sd;k.slip=Math.max(.1,k.slip*.6);k.kickT=now;k.yawV=(k.yawV||0)-sd*3.2;if(k.isPlayer)showMsg('連飄！','blue');}
-  }
   let fx=Math.sin(k.h),fz=Math.cos(k.h);
-  let fwd=k.vx*fx+k.vz*fz,lat=k.vx*fz-k.vz*fx;
-  // no grip in the air, so no steering until the wheels touch down
-  const ctrl=k.air?0:1;
-  let drag=false;
-  if(k.drifting){
-    // the slip angle carries on by itself after Shift is released and settles back slowly;
-    // steering into the turn holds it, counter-steering kills it, holding Shift into the turn widens it
-    const into=clamp(st*k.driftDir,-1,1);drag=inp.drift&&into>.2;
-    let m=k.slip;
-    // how long Shift is held right after the kick sets the strength: a tap is a small drift
+  // body-frame velocity: u forward, vl sideways (+ = left); yaw rate k.r (+ = turning left)
+  let u=k.vx*fx+k.vz*fz,vl=k.vx*fz-k.vz*fx;
+  const sp=Math.abs(u);
+  if(k.gr==null)k.gr=1;if(k.r==null)k.r=0;
+  // drift moves set a drift strength m (the slip angle the driver is asking for):
+  // first press, same side again (雙甩), other side (連飄)
+  if(press&&!k.air&&sd&&u>15){
+    k.pressT=-9;
+    if(!k.drifting){k.drifting=true;k.driftStart=now;k.kickT=now;k.driftDir=sd;k.m=.04*style;k.r-=sd*.12;}
+    else if(sd===k.driftDir){k.dbl=true;k.kickT=now;k.m=Math.min((k.m||0)+.22,.75*style);k.r-=sd*.25;if(k.isPlayer){k.gauge+=.05*c.gauge;showMsg('雙甩！','blue');}}
+    else if(Math.abs(Math.atan2(vl,u))>.2){
+      // 鏡飄: reverse direction + Shift mid-slide — grip lets go and the reverse flick plus the slide's inertia twist the body round
+      k.driftDir=sd;k.kickT=now;k.mirror=true;k.m=.35;k.r-=sd*1.4;if(k.isPlayer)showMsg('鏡飄！','gold');
+    }
+    else{k.driftDir=sd;k.kickT=now;k.m=Math.max(.1,(k.m||0)*.6);k.r-=sd*.4;if(k.isPlayer)showMsg('連飄！','blue');}
+  }
+  const into=k.drifting?clamp(st*k.driftDir,-1,1):0;
+  if(k.drifting&&!k.air){
+    let m=k.m||0;
+    // holding Shift through the first 0.35 s asks for a bigger angle; a tap stays small
     const kick=inp.drift&&now-k.kickT<.35&&into>-.3;
-    // tapping toward the turn tops the slip back up (托飄); just holding only slows the fade a little
-    if(tapInto&&!kick){m+=.15*style;k.yawV=(k.yawV||0)-k.driftDir*.9;}
-    if(!k.air){m+=(kick?1.05*style:0)*dt;m-=(.45-.3*Math.max(0,into)+Math.max(0,-into)*2.2)*dt;}
-    // a double drift is allowed past the single-drift cap
-    k.slip=m=Math.min(m,(k.dbl?.75:.55)*style);
-    if((m<.07&&now-k.kickT>.35)||sp<10){k.drifting=false;k.dbl=false;k.slip=0;k.lastDriftDur=now-k.driftStart;k.driftEndAt=now;}
+    // tapping toward the turn tops it back up (托飄)
+    if(tapInto&&!kick){m+=.15*style;k.r-=k.driftDir*.12;}
+    m+=(kick?.9*style:0)*dt;
+    // it fades on its own; steering in slows the fade, counter-steering kills it
+    if(!k.mirror)m-=(.45-.3*Math.max(0,into)+Math.max(0,-into)*2.2)*dt;
+    k.m=m=Math.min(m,(k.dbl?.75:.55)*style);
+    // the mirror twist lasts while Shift is held (up to 1.6 s)
+    if(k.mirror&&(!inp.drift||now-k.kickT>1.6))k.mirror=false;
   }
-  if(k.drifting){
-    // travel direction carves with the slip angle; velocity turns with it
-    // any drift turns harder than normal steering; the arrow key leans it further in or out
-    // the arrow key steers the path (harder the bigger the slip); with the key centred the kart just slides on
-    const dd=k.driftDir,m=k.slip,into=clamp(st*dd,-1,1);
-    // above cruising speed the drift turns faster so nitro doesn't swing the line wide
-    const hi=sp>60?Math.pow(sp/60,.4):1;
-    // a tapped arrow nudges the line, a held arrow tightens it over ~0.45s
-    const ramp=.35+.65*Math.min(1,(k.dirT||0)/.45);
-    // same base as normal steering, scaled up by the slip, so turning stays continuous when the drift fades out
-    const turnN=c.turn*.7*(1-.35*Math.min(1,sp/100));
-    const R=(st*ramp*turnN*(1+3.4*m)+dd*.4*m)*Math.min(1,sp/18)*hi*ctrl;
-    // yaw rate has inertia: it builds and fades instead of following the key instantly
-    k.om=(k.om||0)+(R-(k.om||0))*Math.min(1,dt*(k.air?1.5:5.5/Math.sqrt(c.mass)));
-    k.h-=k.om*dt;
-    k.yawT=-dd*m*(.85+.3*into)*(sp>60?Math.pow(60/sp,.6):1);
-    fx=Math.sin(k.h);fz=Math.cos(k.h);
-    // momentum lags the turn: re-read the velocity in the new frame so the kart carries sideways
-    fwd=k.vx*fx+k.vz*fz;lat=k.vx*fz-k.vz*fx;
-  }else{
-    const turn=c.turn*.7*Math.min(1,sp/14)*(1-.35*Math.min(1,sp/100))*(k.onIce?.8:1)*ctrl;
-    const R=st*turn*(k.fwd<-.5?-1:1);
-    k.om=(k.om||0)+(R-(k.om||0))*Math.min(1,dt*(k.air?1.5:10/Math.sqrt(c.mass)));
-    k.h-=k.om*dt;
-    k.yawT=0;
-    fx=Math.sin(k.h);fz=Math.cos(k.h);
-    fwd=k.vx*fx+k.vz*fz;lat=k.vx*fz-k.vz*fx;
-  }
+  if(k.drifting&&((now-k.kickT>.35&&(k.m||0)<.06&&!k.mirror)||Math.hypot(u,vl)<10)){k.drifting=false;k.mirror=false;k.dbl=false;k.m=0;k.lastDriftDur=now-k.driftStart;k.driftEndAt=now;}
+  // the rear lets go in proportion to the drift strength and grips again as it fades
+  const spin=k.drifting&&!!k.mirror;
+  const grT=k.drifting?(spin?.3:1-.45*Math.min(1,(k.m||0)/.35)):1;
+  k.gr+=(grT-k.gr)*Math.min(1,dt*(grT<k.gr?12:4));
+  // the slip angle the chassis is steered toward (+ = nose right of the velocity)
+  const bTarget=k.drifting?k.driftDir*(k.m||0)*(.85+.3*into):0;
+  const sp0=Math.hypot(u,vl);
+  if(!k.air){
+    const grip=(k.onIce?.35:1)*(k.offroad?.75:1);
+    const a=1.15,b=1.1,I=2.2*Math.sqrt(c.mass),Cf=300*hand,Cr=330;
+    const FfMax=40*grip*hand*(spin?.5:1),FrMax=44*grip*k.gr;
+    // while drifting the kart is never treated as reversing, even when it points sideways or backwards
+    const sv=!k.drifting&&u<-.5?-1:1;
+    const dL=-st*clamp(2.7/Math.max(sp,4),.035,.45)*hand*sv;
+    const cd=Math.cos(dL),sn=Math.sin(dL);
+    const n=4,h=dt/n;
+    for(let s=0;s<n;s++){
+      const ue=Math.max(Math.abs(u),6);
+      const af=Math.atan2(vl+a*k.r,ue)*sv-dL,ar=Math.atan2(vl-b*k.r,ue)*sv;
+      const Ff=-tyre(af,Cf,FfMax)*sv,Fr=-tyre(ar,Cr,FrMax)*sv;
+      const du=-Ff*sn+vl*k.r,dv=Ff*cd+Fr-u*k.r;
+      let dr=(a*Ff*cd-b*Fr)/I;
+      // arcade limiter: past the max slip angle the nose is pulled back toward the velocity, so the kart never spins
+      // full-circle slip angle, so a kart pointing sideways or backwards is measured correctly
+      const bt=Math.atan2(vl,u);
+      // drift assist: a soft spring steers the chassis toward the requested slip angle; the tyres do the rest,
+      // so the tail still overshoots, swings back and leaves crossing tracks
+      // in the mirror twist there's no assist: the flick and inertia turn the body, the arrows nudge it
+      if(spin)dr-=k.driftDir*5*(inp.drift?1:0)+st*2.5;
+      else if(k.drifting)dr-=angWrap(bTarget-bt)*70;
+      else{const w=Math.exp(-(now-(k.driftEndAt==null?-9:k.driftEndAt))/.5);if(w>.02)dr+=bt*40*w;}
+      if(k.pbt!=null&&!spin)dr+=angWrap(bt-k.pbt)/h*(k.drifting?4:5);k.pbt=bt;
+      u+=du*h;vl+=dv*h;k.r+=dr*h;k.h+=k.r*h;
+    }
+    if(sp<3)k.r*=Math.exp(-8*dt);
+    // like KartRider, most of the speed the tyres scrub off is handed back (more of it while drifting)
+    const sp1=Math.hypot(u,vl);
+    if(sp1>1&&sp1<sp0){const t=sp1+(sp0-sp1)*(k.drifting?.85:.6);u*=t/sp1;vl*=t/sp1;}
+  }else{k.r*=Math.exp(-1.5*dt);k.h+=k.r*dt;}
+  fx=Math.sin(k.h);fz=Math.cos(k.h);
+  k.beta=Math.atan2(vl,u);k.slip=k.drifting?Math.min(1.2,Math.max(k.m||0,Math.abs(k.beta))):0;
   if(k.boost>0&&!inp.throttle&&!k.air)k.boost=0;
-  // the chassis is a spring around the slip angle (about half-damped), so the tail flicks, overshoots and settles
-  k.yawV=(k.yawV||0)+(((k.yawT||0)-k.yawOff)*70-(k.yawV||0)*8)*dt;k.yawOff+=k.yawV*dt;
+  k.yawT=0;k.yawV=(k.yawV||0)+((0-k.yawOff)*70-(k.yawV||0)*8)*dt;k.yawOff+=k.yawV*dt;
   const boosting=k.boost>0,top=boosting?k.boostTop:c.top*(k.isPlayer?1:k.skill*k.band);
+  let fwd=u;
   if(k.air)fwd-=fwd*.04*dt;
   else{
-    const acc=c.accel*(k.drifting?1-.5*k.slip:1);
+    const acc=c.accel*(k.drifting?1-.4*Math.min(1,k.slip):1);
     if(boosting){if(fwd<top)fwd+=72*dt;}
     else if(inp.throttle){if(fwd<top)fwd+=acc*(1-.5*Math.max(0,fwd)/top)*dt;}
     if(inp.brake&&!boosting){if(fwd>.5)fwd-=55*dt;else fwd=Math.max(fwd-15*dt,-16);}
@@ -952,32 +974,17 @@ function updateKart(k,inp,dt,now){
     if(fwd>top)fwd-=(fwd-top)*1.6*dt;
     if(k.offroad)fwd-=fwd*TR.th.offDrag*dt;
     fwd-=G*.6*k.slope*dt;
-  }
-  if(k.drifting){
-    const m=k.slip,slip=k.driftDir*clamp(fwd,0,60)*.07*m*style*(k.onIce?2.5:1);
-    if(!k.air){
-      // sideways momentum bleeds into the slip line; most of it is kept as forward speed
-      // turn the velocity toward the slip line without changing its size: momentum is kept, never created
-      const spd=Math.hypot(fwd,lat),f0=Math.max(.001,fwd);let b=Math.atan2(lat,f0);
-      b+=(Math.atan2(slip,f0)-b)*Math.min(1,dt*11);fwd=spd*Math.cos(b);lat=spd*Math.sin(b);
-      fwd-=fwd*(.03+.28*m*m)*dt;
-    }
-  }else if(!k.air){
-    // tyres swing the velocity toward the nose; grip comes back smoothly after a drift instead of snapping
-    const grip=k.onIce?2.2:9-2.5*Math.exp(-(now-k.driftEndAt)/.3);
-    const spd=Math.hypot(fwd,lat);
-    if(spd>.5&&fwd>0){let b=Math.atan2(lat,fwd);const nb=b*Math.exp(-grip*dt),spd2=spd*(1-Math.abs(b-nb)*.25);fwd=spd2*Math.cos(nb);lat=spd2*Math.sin(nb);}
-    else lat*=Math.exp(-grip*dt);
+    if(k.drifting)fwd-=fwd*.18*k.slip*k.slip*dt;
   }
   if(k.drifting&&k.isPlayer&&!k.air){
     k.gauge+=(.35+k.slip*.6)*Math.max(0,fwd)/60*c.gauge*dt;
   }
   if(k.isPlayer&&k.gauge>=1){if(k.nitro<2){k.nitro++;k.gauge-=1;showMsg('氮氣 +1','blue');sfx.ding();}else k.gauge=1;}
   // one canister at a time: a new nitro waits until the running one has burnt out
-  if(inp.nitro&&!k.nitroHeld&&k.nitro>0&&!(k.boost>0&&k.boostKind==='n')){k.nitro--;setBoost(k,2.6,c.top+32,'n');if(k.isPlayer){showMsg('氮氣加速！');sfx.whoosh();}}
+  if(inp.nitro&&!k.nitroHeld&&k.nitro>0&&!(k.boost>0&&k.boostKind==='n')){k.nitro--;setBoost(k,2.6,c.top+22,'n');if(k.isPlayer){showMsg('氮氣加速！');sfx.whoosh();}}
   k.nitroHeld=inp.nitro;
   if(k.boost>0)k.boost-=dt;
-  k.vx=fx*fwd+fz*lat;k.vz=fz*fwd-fx*lat;k.fwd=fwd;k.lat=lat;k.steerIn=st;k.drag=drag;
+  k.vx=fx*fwd+fz*vl;k.vz=fz*fwd-fx*vl;k.fwd=fwd;k.lat=vl;k.steerIn=st;k.om=-k.r;
   k.x+=k.vx*dt;k.z+=k.vz*dt;
   trackContact(k,now,dt);
 }
@@ -1013,7 +1020,7 @@ function trackContact(k,now,dt){
   if(walled){
     const s=Math.sign(d);k.x-=NX[i]*(d-s*lim);k.z-=NZ[i]*(d-s*lim);
     const vn=k.vx*NX[i]+k.vz*NZ[i];
-    if(vn*s>0){k.vx-=NX[i]*vn*1.4;k.vz-=NZ[i]*vn*1.4;k.om=clamp((k.om||0)+s*Math.abs(vn)*.04,-2.5,2.5);if(k.drifting)k.slip*=.6;if(k.isPlayer&&Math.abs(vn)>8){sfx.bump();shake=.25;}}
+    if(vn*s>0){k.vx-=NX[i]*vn*1.4;k.vz-=NZ[i]*vn*1.4;k.r=clamp((k.r||0)-s*Math.abs(vn)*.04,-2.5,2.5);if(k.drifting)k.slip*=.6;if(k.isPlayer&&Math.abs(vn)>8){sfx.bump();shake=.25;}}
     const loss=.015/k.car.mass;k.vx*=1-loss;k.vz*=1-loss;
   }
   // vertical: follow the road, leave it when it drops away faster than gravity
@@ -1035,7 +1042,7 @@ function trackContact(k,now,dt){
     if(!walled&&gy<yb-.12&&k.fwd>12){k.air=true;k.airT=0;k.y=yb;k.vy-=G*dt;}
     else{k.y=gy;k.vy=vyG;}
   }
-  if(!k.air)for(const p of TR.PADS){let di=Math.abs(i-p);di=Math.min(di,N-di);if(di<=4&&Math.abs(d)<3.6&&k.boost<.9){setBoost(k,1.1,k.car.top+24);if(k.isPlayer){showMsg('加速帶！','gold');sfx.whoosh();}}}
+  if(!k.air)for(const p of TR.PADS){let di=Math.abs(i-p);di=Math.min(di,N-di);if(di<=4&&Math.abs(d)<3.6&&k.boost<.9){setBoost(k,1.1,k.car.top+16);if(k.isPlayer){showMsg('加速帶！','gold');sfx.whoosh();}}}
   if(i>N*.4&&i<N*.6)k.half=true;
   if(prev>N*.8&&i<N*.2){if(k.half){k.half=false;k.lap++;onLap(k,now);}}
   else if(prev<N*.2&&i>N*.8){k.lap--;k.half=true;}
@@ -1062,12 +1069,12 @@ function aiInput(k,now,dt){
   k.laneS+=(k.lane-k.laneS)*Math.min(1,dt*.8);
   const j=wrap(k.idx+Math.floor(12+Math.max(0,k.fwd)*.32));
   const tx=PX[j]+NX[j]*k.laneS,tz=PZ[j]+NZ[j]*k.laneS;
-  const diff=angWrap(Math.atan2(tx-k.x,tz-k.z)-k.h);
+  const vh=Math.hypot(k.vx,k.vz)>5?Math.atan2(k.vx,k.vz):k.h,diff=angWrap(Math.atan2(tx-k.x,tz-k.z)-vh);
   const c=Math.max(curv(k.idx,55),curv(wrap(k.idx+10),30)*1.4);
   if(!k.isPlayer){const gap=(progress(player)-progress(k))/TR.N;k.band=clamp(1+gap*.22,.9,1.09);}else k.band=1;
   const ice=TR.ICE.length?.93:1;
   const target=k.car.top*(k.isPlayer?.95:k.skill*k.band)*(1-Math.min(.5,c*.5))*ice;
-  if(!k.isPlayer&&now>k.aiNitroT&&c<.15&&!k.air){setBoost(k,2.2,k.car.top+28);k.aiNitroT=now+rnd(9,18);}
+  if(!k.isPlayer&&now>k.aiNitroT&&c<.15&&!k.air){setBoost(k,2.2,k.car.top+20);k.aiNitroT=now+rnd(9,18);}
   const steer=clamp(-diff*2.6,-1,1),want=!k.air&&k.fwd>32&&c>.85&&Math.abs(diff)>.06;
   if(want&&!k.drifting)k.aiDrift=true;
   else if(!want&&!k.drifting)k.aiDrift=false;
@@ -1080,7 +1087,7 @@ function syncModel(k,dt){
   const pt=k.air?clamp(-Math.atan2(k.vy||0,Math.max(8,Math.abs(k.fwd||0)))*.8,-.45,.45):-Math.atan(k.slope||0);
   k.g.rotation.x+=(pt-k.g.rotation.x)*Math.min(1,dt*(k.air?4:10)||1);k.g.rotation.y=k.h+(k.yawOff||0);
   const spin=(k.fwd||0)*dt/.46;for(const w of k.wheels)w.rotation.x+=spin;
-  const sv=k.drifting?(k.yawOff||0)*1.78:(k.steerIn||0);k.steerVis=(k.steerVis||0)+(sv-(k.steerVis||0))*Math.min(1,dt*12);
+  const sv=k.drifting?-(k.beta||0)/.45:(k.steerIn||0);k.steerVis=(k.steerVis||0)+(sv-(k.steerVis||0))*Math.min(1,dt*12);
   for(const f of k.fronts)f.rotation.y=-k.steerVis*.45;
   // suspension: body leans out in corners, squats/dives with throttle and brake, then settles
   if(dt>0){
@@ -1095,7 +1102,7 @@ function syncModel(k,dt){
   k.body.position.y=(k.offroad&&!k.air?Math.sin(performance.now()*.05)*.04:0)+(k.hop>0?Math.sin((1-k.hop/.22)*Math.PI)*.3:0)-(k.land>0?Math.sin(k.land/.25*Math.PI)*.18:0);
   if(k.glow)k.glow.visible=!!TR.th.neon;
   const on=k.boost>0;k.flame.visible=on;
-  if(on){const nit=k.boostTop>=k.car.top+28,s=.8+Math.random()*.5;k.flame.scale.set(s,s,s*(nit?1.4:1));k.f1.material.color.setHex(nit?0x3de1ff:0xff7a1a);}
+  if(on){const nit=k.boostTop>=k.car.top+18,s=.8+Math.random()*.5;k.flame.scale.set(s,s,s*(nit?1.4:1));k.f1.material.color.setHex(nit?0x3de1ff:0xff7a1a);}
 }
 const pools={smoke:[],spark:[]},pIdx={smoke:0,spark:0};
 function mkPool(name,n,additive){for(let i=0;i<n;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:smokeTex,transparent:true,depthWrite:false,opacity:0,blending:additive?THREE.AdditiveBlending:THREE.NormalBlending}));s.visible=false;scene.add(s);pools[name].push({s,life:0,max:1,vx:0,vy:0,vz:0,size:1,grow:2,grav:0,fade:.6});}}
@@ -1154,7 +1161,7 @@ function kartFx(k,dt){
       spawn('smoke',x,y+.45,z,rnd(-1,1)-fx*2,rnd(.6,1.4),rnd(-1,1)-fz*2,.8,1.0,dust,2.4,0);
     }
   }
-  if(k.boost>0){const nit=k.boostTop>=k.car.top+28;for(let n=0;n<2;n++)spawn('spark',k.x-fx*2.4+rnd(-.2,.2),y+.65,k.z-fz*2.4+rnd(-.2,.2),-fx*6,rnd(0,1),-fz*6,.3,.8,nit?0x5fd8ff:0xff8a30,1.2,0);}
+  if(k.boost>0){const nit=k.boostTop>=k.car.top+18;for(let n=0;n<2;n++)spawn('spark',k.x-fx*2.4+rnd(-.2,.2),y+.65,k.z-fz*2.4+rnd(-.2,.2),-fx*6,rnd(0,1),-fz*6,.3,.8,nit?0x5fd8ff:0xff8a30,1.2,0);}
 }
 
 /* ---------- Audio ---------- */
@@ -1207,7 +1214,7 @@ addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
 function onUpPress(){
   const now=performance.now()/1000;upAt=now;
   if(state==='race'&&player&&!player.finished&&!player.drifting&&now-player.driftEndAt<.4&&player.lastDriftDur>.55){
-    player.driftEndAt=-9;setBoost(player,.45,player.car.top+14);showMsg('瞬間加速！','gold');sfx.whoosh();
+    player.driftEndAt=-9;setBoost(player,.45,player.car.top+9);showMsg('瞬間加速！','gold');sfx.whoosh();
   }
 }
 const touchMode=!!(window.matchMedia&&matchMedia('(pointer: coarse)').matches);
@@ -1327,7 +1334,7 @@ function respawn(){
   if(state!=='race'||!player||player.finished)return;
   const now=performance.now()/1000;if(now-respawnAt<1.5)return;respawnAt=now;
   const i=player.idx;
-  Object.assign(player,{x:TR.PX[i],z:TR.PZ[i],y:TR.HY[i],h:TR.HA[i],vx:0,vz:0,fwd:0,lat:0,vy:0,air:false,drifting:false,slip:0,yawOff:0,yawV:0,yawT:0,boost:0,steerS:0,wrongT:0,om:0});
+  Object.assign(player,{x:TR.PX[i],z:TR.PZ[i],y:TR.HY[i],h:TR.HA[i],vx:0,vz:0,fwd:0,lat:0,vy:0,air:false,drifting:false,slip:0,yawOff:0,yawV:0,yawT:0,boost:0,steerS:0,wrongT:0,om:0,r:0,gr:1});
   player.sk=null;showMsg('復位','blue');
 }
 function togglePause(force){
@@ -1532,7 +1539,7 @@ function updateRemote(k,dt){
   const age=Math.min(.3,Math.max(0,(Date.now()-k.netAt)/1000)),tx=s[0]+s[3]*age,tz=s[1]+s[4]*age;
   if(Math.hypot(tx-k.x,tz-k.z)>30){k.x=tx;k.z=tz;}
   const a=1-Math.exp(-dt*14);k.x+=(tx-k.x)*a;k.z+=(tz-k.z)*a;k.h+=angWrap(s[2]-k.h)*a;
-  k.vx=s[3];k.vz=s[4];k.fwd=s[5];k.lat=s[6];k.boost=s[7]?1:0;k.boostTop=s[7]===2?k.car.top+32:k.car.top+20;k.drifting=!!s[8];
+  k.vx=s[3];k.vz=s[4];k.fwd=s[5];k.lat=s[6];k.boost=s[7]?1:0;k.boostTop=s[7]===2?k.car.top+22:k.car.top+12;k.drifting=!!s[8];
   k.lap=s[9];k.idx=clamp(Math.round(s[10]),0,TR.N-1);k.finished=!!s[11];k.finishTime=s[12];k.steerIn=s[13];k.yawOff=+s[14]||0;k.vy=+s[16]||0;k.air=!!s[17];
   surface(k);
   const ty=(+s[15]||0)+(k.air?k.vy*age:0);k.y=k.y==null?ty:k.y+(ty-k.y)*a;
@@ -1541,7 +1548,7 @@ function netSend(force){
   if(!NET.r||MODE!=='online'||!NET.raceId||!player)return;
   const now=performance.now();if(!force&&now-NET.lastSend<50)return;NET.lastSend=now;
   const p=player,r2=v=>Math.round(v*100)/100;
-  NET.r.presence({rid:NET.raceId,st:[r2(p.x),r2(p.z),r2(p.h),r2(p.vx),r2(p.vz),r2(p.fwd),r2(p.lat),p.boost>0?(p.boostTop>=p.car.top+28?2:1):0,p.drifting?1:0,p.lap,p.idx,p.finished?1:0,r2(p.finishTime),r2(p.steerIn||0),r2(p.yawOff||0),r2(p.y||0),r2(p.vy||0),p.air?1:0]}).catch(()=>{});
+  NET.r.presence({rid:NET.raceId,st:[r2(p.x),r2(p.z),r2(p.h),r2(p.vx),r2(p.vz),r2(p.fwd),r2(p.lat),p.boost>0?(p.boostTop>=p.car.top+18?2:1):0,p.drifting?1:0,p.lap,p.idx,p.finished?1:0,r2(p.finishTime),r2(p.steerIn||0),r2(p.yawOff||0),r2(p.y||0),r2(p.vy||0),p.air?1:0]}).catch(()=>{});
 }
 function hostStartRace(){
   if(!NET.r||!NET.isHost)return;
@@ -1636,7 +1643,7 @@ function simulate(dt,now){
     else inp=aiInput(k,now,dt);
     updateKart(k,inp,dt,now);
     // safety net: a non-finite state would freeze the frame loop, so put the kart back on the road
-    if(!isFinite(k.x+k.z+k.y+k.vx+k.vz+k.h+k.fwd+k.yawOff)){const i=k.idx|0;Object.assign(k,{x:TR.PX[i],z:TR.PZ[i],y:TR.HY[i],h:TR.HA[i],vx:0,vz:0,fwd:0,lat:0,vy:0,om:0,yawOff:0,yawV:0,yawT:0,slip:0,drifting:false,air:false});}
+    if(!isFinite(k.x+k.z+k.y+k.vx+k.vz+k.h+k.fwd+k.yawOff)){const i=k.idx|0;Object.assign(k,{x:TR.PX[i],z:TR.PZ[i],y:TR.HY[i],h:TR.HA[i],vx:0,vz:0,fwd:0,lat:0,vy:0,om:0,r:0,gr:1,yawOff:0,yawV:0,yawT:0,slip:0,drifting:false,air:false});}
   }
   collideKarts();
 }
@@ -1655,10 +1662,10 @@ function frame(){
       state='race';raceStart=now;lapStartAt=now;cEl.textContent='GO!';cEl.className='';void cEl.offsetWidth;cEl.className='tick';sfx.beep(true);
       setTimeout(()=>{if(state!=='countdown')cEl.hidden=true;},700);
       const held=(keys.up||touchMode)&&upAt>0,lead=now-upAt;
-      if(held&&lead<=.15){setBoost(player,1.7,player.car.top+30);showMsg('完美起步噴！','gold');sfx.whoosh();}
-      else if(held&&lead<=.45){setBoost(player,1.1,player.car.top+22);showMsg('起步噴！','gold');sfx.whoosh();}
+      if(held&&lead<=.15){setBoost(player,1.7,player.car.top+18);showMsg('完美起步噴！','gold');sfx.whoosh();}
+      else if(held&&lead<=.45){setBoost(player,1.1,player.car.top+13);showMsg('起步噴！','gold');sfx.whoosh();}
       else if(held&&lead<=1.6)showMsg('太早了','blue');
-      for(const k of karts)if(!k.isPlayer&&!k.isRemote&&Math.random()<.5)setBoost(k,1,k.car.top+20);
+      for(const k of karts)if(!k.isPlayer&&!k.isRemote&&Math.random()<.5)setBoost(k,1,k.car.top+13);
       setTimeout(()=>{$('#sbar').hidden=true;},900);
     }
   }
@@ -1677,7 +1684,7 @@ function frame(){
     placeSun(px,py,pz);
   }else{
     const p=player,spd=Math.hypot(p.vx,p.vz);
-    let tgt=p.h+(p.yawOff||0)*.2;if(spd>5&&p.fwd>0)tgt+=angWrap(Math.atan2(p.vx,p.vz)-p.h)*.4;
+    let tgt=p.h;if(spd>5&&p.fwd>0)tgt+=angWrap(Math.atan2(p.vx,p.vz)-p.h)*.5;
     camH+=angWrap(tgt-camH)*Math.min(1,dt*5);
     const back=8.6,bi=wrap(p.idx-5),ai=wrap(p.idx+4);
     want.set(p.x-Math.sin(camH)*back,Math.max(p.y,TR.HY[bi])+3.7,p.z-Math.cos(camH)*back);
