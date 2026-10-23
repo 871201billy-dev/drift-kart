@@ -918,13 +918,15 @@ function updateKart(k,inp,dt,now){
     const boostOn=k.boost>0,topD=boostOn?k.boostTop:c.top*(k.isPlayer?1:k.skill*k.band);
     let Vn=k.spd;
     // draw peaks at 45°; the slip brake climbs steeply, so past ~60° the slide costs more than it gives
-    // per kart: CornerDrawFactor scales the draw, DriftEscapeForce how much the slide ploughs
-    if(dragging)Vn+=.25*(c.draw/.07)*Vn*Math.sin(2*Math.min(slip,1.5))**2*dt;
-    Vn-=.3*(1800/c.esc)*Vn*Math.sin(Math.min(slip,1.5))**4*dt;
-    if(boostOn){if(Vn<topD)Vn+=72*dt;}
+    // per kart: CornerDrawFactor scales the draw, DriftEscapeForce how much the slide ploughs.
+    // Slip brake fitted to 9th-gen footage: about 11%/s of speed at 40°, about 45%/s at 60-70°
+    // the draw can only lift the kart to about 1.2x top (just over nitro top with nitro), it never cuts speed
+    const capD=boostOn?topD*1.03:topD*1.2;
+    if(dragging&&Vn<capD)Vn=Math.min(capD,Vn+.25*(c.draw/.07)*Vn*Math.sin(2*Math.min(slip,1.5))**2*dt);
+    Vn-=.95*(1800/c.esc)*Vn*Math.sin(Math.min(slip,1.5))**4.7*dt;
+    if(boostOn){if(Vn<topD)Vn+=24*dt;}
     else if(inp.throttle&&Vn<topD)Vn+=c.accel*.6*(1-.85*Vn/topD)*dt;
-    if(Vn>topD*1.35)Vn=topD*1.35;
-    if(Vn>topD&&!dragging)Vn-=(Vn-topD)*.8*dt;
+    if(Vn>topD&&!dragging)Vn-=(Vn-topD)*.25*dt;
     if(k.offroad)Vn-=Vn*TR.th.offDrag*dt;
     Vn-=36*.6*k.slope*dt;
     k.spd=Math.max(0,Vn);
@@ -972,12 +974,12 @@ function updateKart(k,inp,dt,now){
     // while sliding the rear tyres can't put the power down fully
     const acc=c.accel*(k.drifting?1-.6*Math.sin(Math.min(1.5,k.slip)):1);
     const tot=Math.hypot(fwd,lat);
-    if(boosting){if(tot<top)fwd+=72*dt;}
+    if(boosting){if(tot<top)fwd+=24*dt;}
     // pull fades out near top speed, so anything that drags (like cornering) shows up as a small loss
     else if(inp.throttle){if(tot<top)fwd+=acc*(1-.85*Math.max(0,tot)/top)*dt;}
     if(inp.brake&&!boosting){if(fwd>.5)fwd-=55*dt;else fwd=Math.max(fwd-15*dt,-16);}
     if(!inp.throttle&&!inp.brake&&!boosting)fwd-=fwd*.45*dt;
-    if(tot>top){const sc=1-Math.min(.5,(tot-top)/tot*1.6*dt);fwd*=sc;lat*=sc;}
+    if(tot>top){const sc=1-Math.min(.5,(tot-top)/tot*.25*dt);fwd*=sc;lat*=sc;}
     if(k.offroad)fwd-=fwd*TR.th.offDrag*dt;
     fwd-=G*.6*k.slope*dt;
     // ordinary cornering scrubs a little speed too, in proportion to how hard the kart is turning
