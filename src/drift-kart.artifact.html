@@ -928,7 +928,8 @@ function updateKart(k,inp,dt,now){
     const a=1.15,b=1.1,I=3.6*Math.sqrt(c.mass),Cf=300*hand,Cr=480; // stiffer rear = mild understeer, so the kart straightens itself
     // KartRider-style drift grip: while drifting the tyres can pull far harder sideways than in normal driving,
     // which is what lets a drift (even on nitro) wrap the line in tight
-    const dg=k.drifting?1+1.9*Math.min(1,(k.m||0)/.3):1;
+    // both the extra drift grip and the bigger steering lock come in with drift strength, so a tap stays small
+    const dg=k.drifting?1+1.9*smooth(.08,.35,k.m||0):1;
     const FfMax=44*grip*hand*dg,FrMax=55*grip*k.gr*dg;
     // while drifting the kart is never treated as reversing, even when it points sideways or backwards
     const sv=u<-.5?-1:1;
@@ -942,7 +943,7 @@ function updateKart(k,inp,dt,now){
       // while drifting the driver's hands hold the front wheels along the way the nose is actually travelling
       // (natural opposite lock); the arrow keys steer from there
       const fv=Math.atan2(vl+a*k.r,ue);
-      const dw=k.drifting?Math.min(1,(now-k.driftStart)/.25):0,dW=dL+(fv*sv-(st*.18+back*k.driftDir*1.1*Math.min(.35,k.m||0))*hand-dL)*dw,cw=Math.cos(dW),sw=Math.sin(dW);
+      const dw=k.drifting?Math.min(1,(now-k.driftStart)/.25):0,ms=smooth(.04,.3,k.m||0),stA=(1-ms)*Math.abs(dL)/Math.max(.001,Math.abs(st))+ms*.18*hand,dW=dL+(fv*sv-st*stA-back*k.driftDir*1.1*Math.min(.35,k.m||0)*hand-dL)*dw,cw=Math.cos(dW),sw=Math.sin(dW);
       const af=fv*sv-dW,ar=Math.atan2(vl-b*k.r,ue)*sv;
       const Ff=-tyre(af,Cf,FfMax)*sv,Fr=-tyre(ar,Cr,FrMax)*sv;
       const du=-Ff*sw+vl*k.r,dv=Ff*cw+Fr-u*k.r;
