@@ -889,7 +889,7 @@ function updateKart(k,inp,dt,now){
   if(press&&!k.air&&sd&&u>15){
     k.pressT=-9;
     if(!k.drifting){k.drifting=true;k.driftStart=now;k.kickT=now;k.driftDir=sd;k.m=.04*style;k.r-=sd*.12;}
-    else if(sd===k.driftDir){k.dbl=true;k.kickT=now;k.m=Math.min((k.m||0)+.15,.75*style);flick+=sd*.05*style;if(k.isPlayer){k.gauge+=.05*c.gauge;showMsg('雙甩！','blue');}}
+    else if(sd===k.driftDir){k.dbl=true;k.kickT=now;k.m=Math.min((k.m||0)+.15,.75*style);k.pendFlick=(k.pendFlick||0)+sd*.05*style;if(k.isPlayer){k.gauge+=.05*c.gauge;showMsg('雙甩！','blue');}}
     else{k.driftDir=sd;k.kickT=now;k.revT=now;k.m=Math.max(.1,(k.m||0)*.6);k.r-=sd*.4;if(k.isPlayer)showMsg('連飄！','blue');}
   }
   // 鏡飄: keep the reverse Shift held past 0.2 s and grip lets go; the reverse flick plus the slide's inertia twist the body round
@@ -897,15 +897,18 @@ function updateKart(k,inp,dt,now){
   if(k.revT!=null&&(!inp.drift||now-k.revT>.5))k.revT=null;
   const into=k.drifting?clamp(st*k.driftDir,-1,1):0;
   if(k.drifting&&!k.air){
-    if(k.pendFlick){flick+=k.pendFlick;k.pendFlick=0;}
+    // queued flicks (taps, double) are fed in over a few frames rather than in one jump
+    if(k.pendFlick){const q=k.pendFlick*Math.min(1,dt*10);flick+=q;k.pendFlick-=q;if(Math.abs(k.pendFlick)<1e-4)k.pendFlick=0;}
     let m=k.m||0;
     // holding Shift through the first 0.35 s asks for a bigger angle; a tap stays small
     const kick=inp.drift&&now-k.kickT<.35&&into>-.3;
     // while Shift is held in the window the body swings out (velocity untouched, so momentum carries on):
     // ~20° for a full 0.35 s hold, a few degrees for a tap; after that the tyres decide what happens
-    if(kick)flick+=k.driftDir*FLICK*style*dt;
+    // the swing rate eases in and, when Shift is let go, eases out instead of stopping dead
+    const frT=kick?k.driftDir*FLICK*style*Math.sin(Math.PI*Math.min(1,(now-k.kickT)/.35)):0;
+    k.fr=(k.fr||0)+(frT-(k.fr||0))*Math.min(1,dt*12);flick+=k.fr*dt;
     // tapping toward the turn tops it back up (托飄)
-    if(tapInto&&!kick){m+=.1*style;flick+=k.driftDir*.03*style;}
+    if(tapInto&&!kick){m+=.1*style;k.pendFlick=(k.pendFlick||0)+k.driftDir*.03*style;}
     m+=(kick?.9*style:0)*dt;
     // it fades on its own; steering in slows the fade, counter-steering kills it
     if(!k.mirror)m-=(.45-.3*Math.max(0,into)+Math.max(0,-into)*2.2)*dt;
@@ -914,11 +917,11 @@ function updateKart(k,inp,dt,now){
     if(k.mirror&&(!inp.drift||now-k.kickT>1.6))k.mirror=false;
   }
   if(flick&&!k.air){k.h-=flick;fx=Math.sin(k.h);fz=Math.cos(k.h);u=k.vx*fx+k.vz*fz;vl=k.vx*fz-k.vz*fx;}
-  if(k.drifting&&((now-k.kickT>.35&&(k.m||0)<.06&&!k.mirror)||Math.hypot(u,vl)<10)){k.drifting=false;k.mirror=false;k.dbl=false;k.m=0;k.lastDriftDur=now-k.driftStart;k.driftEndAt=now;}
+  if(k.drifting&&((now-k.kickT>.35&&(k.m||0)<.06&&!k.mirror)||Math.hypot(u,vl)<10)){k.drifting=false;k.fr=0;k.mirror=false;k.dbl=false;k.m=0;k.lastDriftDur=now-k.driftStart;k.driftEndAt=now;}
   // the rear lets go in proportion to the drift strength and grips again as it fades
   const spin=k.drifting&&!!k.mirror;
   const grT=k.drifting?(spin?.3:1-.72*Math.min(1,(k.m||0)/.3)):1;
-  k.gr+=(grT-k.gr)*Math.min(1,dt*(grT<k.gr?12:4));
+  k.gr+=(grT-k.gr)*Math.min(1,dt*(grT<k.gr?5:4));
   // the slip angle the chassis is steered toward (+ = nose right of the velocity)
   const sp0=Math.hypot(u,vl);
   if(!k.air){
@@ -937,7 +940,7 @@ function updateKart(k,inp,dt,now){
       // while drifting the driver's hands hold the front wheels along the way the nose is actually travelling
       // (natural opposite lock); the arrow keys steer from there
       const fv=Math.atan2(vl+a*k.r,ue);
-      const dW=k.drifting&&!spin?fv*sv-st*.18*hand:dL,cw=Math.cos(dW),sw=Math.sin(dW);
+      const dw=k.drifting&&!spin?Math.min(1,(now-k.driftStart)/.25):0,dW=dL+(fv*sv-st*.18*hand-dL)*dw,cw=Math.cos(dW),sw=Math.sin(dW);
       const af=fv*sv-dW,ar=Math.atan2(vl-b*k.r,ue)*sv;
       const Ff=-tyre(af,Cf,FfMax)*sv,Fr=-tyre(ar,Cr,FrMax)*sv;
       const du=-Ff*sw+vl*k.r,dv=Ff*cw+Fr-u*k.r;
@@ -1164,7 +1167,9 @@ function kartFx(k,dt){
     const ax=front?rx*cs-fx*sn:rx,az=front?rz*cs-fz*sn:rz;
     const slip=Math.hypot(wvx*ax+wvz*az,(front?0:spin)+lock);
     const level=slip>13?2:slip>8?1:slip>4.5?0:-1;
-    if(level>=0&&!k.air&&!k.offroad&&near&&dt>0){const L=k.sk[j];if(L)addSkid(level,L[0],L[1],L[2],x,y+.1,z);k.sk[j]=[x,y+.1,z];}
+    // marks only from drifting (and the slide just after), mirror spins, or locked brakes — not ordinary cornering
+    const marking=k.drifting||lock>0||performance.now()/1000-(k.driftEndAt==null?-9:k.driftEndAt)<.4;
+    if(level>=0&&marking&&!k.air&&!k.offroad&&near&&dt>0){const L=k.sk[j];if(L)addSkid(level,L[0],L[1],L[2],x,y+.1,z);k.sk[j]=[x,y+.1,z];}
     else k.sk[j]=null;
   }
   if(!near)return;
