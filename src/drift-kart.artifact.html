@@ -817,6 +817,8 @@ function labelSprite(text,color){
   const tex=canvasTex(256,64,(g,w,h)=>{g.font='900 38px "Noto Sans TC","Microsoft JhengHei",sans-serif';g.textAlign='center';g.textBaseline='middle';g.lineWidth=8;g.strokeStyle='rgba(16,20,54,.9)';g.strokeText(text,w/2,h/2);g.fillStyle=color;g.fillText(text,w/2,h/2);});
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));s.scale.set(4.4,1.1,1);s.position.y=3.1;return s;
 }
+// karts are drawn (and collide) at 85% of the modelled size; a shorter kart sweeps less when it swings
+const KSC=.85;
 function makeKart(car){
   const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.rotation.order='YXZ';
   const S=(c,r,m)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m||0});
@@ -870,6 +872,7 @@ function makeKart(car){
   const beam=new THREE.Mesh(new THREE.PlaneGeometry(5,12).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial(Object.assign(add2(0xfff2c8),{map:beamTex,opacity:.22})));beam.position.set(0,.09,8.2);
   neon.add(under,beam);neon.visible=false;g.add(neon);
   scene.add(g);
+  g.scale.setScalar(KSC);
   return {g,body,wheels,fronts,flame,f1,glow:neon};
 }
 
@@ -1035,7 +1038,7 @@ function rampAt(k,t){
 function landFx(k){for(let n=0;n<10;n++){const a=n/10*TAU;spawn('smoke',k.x+Math.cos(a)*1.4,k.y+.3,k.z+Math.sin(a)*1.4,Math.cos(a)*5,rnd(.5,1.5),Math.sin(a)*5,.7,1.2,0xe9ecf2,2,0);}}
 function trackContact(k,now,dt){
   const prev=k.idx;k.idx=nearestIdx(k);const i=k.idx,{NX,NZ,N}=TR;
-  const d=surface(k),lim=TR.WALL-1.05,walled=Math.abs(d)>lim;
+  const d=surface(k),lim=TR.WALL-1.05*KSC,walled=Math.abs(d)>lim;
   if(walled){
     const s=Math.sign(d);k.x-=NX[i]*(d-s*lim);k.z-=NZ[i]*(d-s*lim);
     const vn=k.vx*NX[i]+k.vz*NZ[i];
@@ -1081,7 +1084,7 @@ function trackContact(k,now,dt){
 function collideKarts(){
   for(let a=0;a<karts.length;a++)for(let b=a+1;b<karts.length;b++){
     const A=karts[a],B=karts[b];if(A.isRemote&&B.isRemote)continue;if(Math.abs((A.y||0)-(B.y||0))>1.8)continue;
-    const dx=B.x-A.x,dz=B.z-A.z,d2=dx*dx+dz*dz,R=2.3;
+    const dx=B.x-A.x,dz=B.z-A.z,d2=dx*dx+dz*dz,R=2.3*KSC;
     if(d2<R*R&&d2>1e-6){
       const d=Math.sqrt(d2),nx=dx/d,nz=dz/d,ov=R-d;
       const ia=A.isRemote?0:1/A.car.mass,ib=B.isRemote?0:1/B.car.mass,sum=ia+ib;
@@ -1177,7 +1180,7 @@ function kartFx(k,dt){
   const W=k.car.w,sa=-(k.steerVis||0)*.45,cs=Math.cos(sa),sn=Math.sin(sa);
   k.sk=k.sk||[null,null,null,null];
   for(let j=0;j<4;j++){
-    const front=j>1,lx=(j%2?-1:1)*(front?1.12:1.18)*W,lz=front?1.15:-1.1;
+    const front=j>1,lx=(j%2?-1:1)*(front?1.12:1.18)*W*KSC,lz=(front?1.15:-1.1)*KSC;
     const x=k.x+rx*lx+fx*lz,z=k.z+rz*lx+fz*lz;
     const wvx=k.vx+om*(lz*rx-lx*fx),wvz=k.vz+om*(lz*rz-lx*fz);
     const ax=front?rx*cs-fx*sn:rx,az=front?rz*cs-fz*sn:rz;
