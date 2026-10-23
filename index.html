@@ -875,7 +875,7 @@ function setBoost(k,t,top,kind){
 }
 
 /* ---------- Physics ---------- */
-const G=36,FLICK=3.2,CARVE=5;
+const G=36,FLICK=2.4,CARVE=5;
 // tyre side force: linear in slip angle at first, then saturating at the grip limit
 const tyre=(alpha,C,Fmax)=>Fmax*Math.tanh(C*alpha/Math.max(Fmax,.01));
 function updateKart(k,inp,dt,now){
@@ -900,7 +900,7 @@ function updateKart(k,inp,dt,now){
   if(press&&!k.air&&sd&&u>15){
     k.pressT=-9;
     if(!k.drifting){k.drifting=true;k.driftStart=now;k.kickT=now;k.driftDir=sd;k.m=.04*style;k.r-=sd*.12;}
-    else if(sd===k.driftDir){k.dbl=true;k.kickT=now;k.m=Math.min((k.m||0)+.15,.75*style);k.pendFlick=(k.pendFlick||0)+back*sd*.12*style;if(k.isPlayer){k.gauge+=.05*c.gauge;showMsg('雙甩！','blue');}}
+    else if(sd===k.driftDir){k.dbl=true;k.kickT=now;k.dblT=now;k.m=Math.min((k.m||0)+.2,.75*style);k.r-=back*sd*.6*style;if(k.isPlayer){k.gauge+=.05*c.gauge;showMsg('雙甩！','blue');}}
     // reverse direction + Shift is just a fresh kick the other way; what the body does with the existing slide is physics
     else{k.driftDir=sd;k.kickT=now;k.m=Math.max(.1,(k.m||0)*.6);}
   }
@@ -918,7 +918,7 @@ function updateKart(k,inp,dt,now){
     k.fr=(k.fr||0)+(frT-(k.fr||0))*Math.min(1,dt*12);flick+=k.fr*dt;
     // tapping toward the turn tops it back up (托飄)
     // a tap toward the turn loosens the rear again and gives the tail a shove (托飄)
-    if(tapInto&&!kick){m+=.12*style;k.r-=back*k.driftDir*.35*style;}
+    if(tapInto&&!kick){m+=.12*style;k.r-=back*k.driftDir*.25*style;}
     m+=(kick?.9*style:0)*dt;
     // it fades on its own; steering in slows the fade, counter-steering kills it
     m-=(.45-.3*Math.max(0,into)+Math.max(0,-into)*2.2)*dt;
@@ -928,19 +928,22 @@ function updateKart(k,inp,dt,now){
   if(k.drifting&&((now-k.kickT>.35&&(k.m||0)<.06)||Math.hypot(u,vl)<10)){k.drifting=false;k.fr=0;k.dbl=false;k.m=0;k.lastDriftDur=now-k.driftStart;k.driftEndAt=now;}
   // the rear lets go in proportion to the drift strength and grips again as it fades
   // a sliding tyre still has most of its friction (~75%); that friction is what bends the line and eats speed
-  const grT=k.drifting?1-.25*Math.min(1,(k.m||0)/.3):1;
+  const grT=k.drifting?(now-(k.dblT==null?-9:k.dblT)<.35?.45:1-.15*Math.min(1,(k.m||0)/.3)):1;
   k.gr+=(grT-k.gr)*Math.min(1,dt*(grT<k.gr?5:4));
   // the slip angle the chassis is steered toward (+ = nose right of the velocity)
   const sp0=Math.hypot(u,vl);
   if(!k.air){
     const grip=(k.onIce?.35:1)*(k.offroad?.75:1);
-    const a=1.15,b=1.1,I=2.2*Math.sqrt(c.mass),Cf=300*hand,Cr=480; // stiffer rear = mild understeer, so the kart straightens itself
-    const FfMax=44*grip*hand,FrMax=55*grip*k.gr;
+    const a=1.15,b=1.1,I=3.6*Math.sqrt(c.mass),Cf=300*hand,Cr=480; // stiffer rear = mild understeer, so the kart straightens itself
+    // KartRider-style drift grip: while drifting the tyres can pull far harder sideways than in normal driving,
+    // which is what lets a drift (even on nitro) wrap the line in tight
+    const dg=k.drifting?1+1.9*Math.min(1,(k.m||0)/.3):1;
+    const FfMax=44*grip*hand*dg,FrMax=55*grip*k.gr*dg;
     // while drifting the kart is never treated as reversing, even when it points sideways or backwards
     const sv=u<-.5?-1:1;
     // the wheel can turn further the more the kart is sliding, so opposite lock can actually catch a slide
     const bNow=Math.abs(Math.atan2(vl,Math.max(Math.abs(u),1)));
-    const dL=-st*clamp(Math.max(4.6/Math.max(sp,4),bNow*1.1),.035,.6)*hand*sv;
+    const dL=-st*clamp(Math.max(3.6/Math.max(sp,4),bNow*1.1),.03,.6)*hand*sv;
     const cd=Math.cos(dL),sn=Math.sin(dL);
     const n=4,h=dt/n;
     for(let s=0;s<n;s++){
@@ -948,7 +951,7 @@ function updateKart(k,inp,dt,now){
       // while drifting the driver's hands hold the front wheels along the way the nose is actually travelling
       // (natural opposite lock); the arrow keys steer from there
       const fv=Math.atan2(vl+a*k.r,ue);
-      const dw=k.drifting?Math.min(1,(now-k.driftStart)/.25):0,dW=dL+(fv*sv-(st*.18+back*k.driftDir*.8*Math.min(.35,k.m||0))*hand-dL)*dw,cw=Math.cos(dW),sw=Math.sin(dW);
+      const dw=k.drifting?Math.min(1,(now-k.driftStart)/.25):0,dW=dL+(fv*sv-(st*.18+back*k.driftDir*1.1*Math.min(.35,k.m||0))*hand-dL)*dw,cw=Math.cos(dW),sw=Math.sin(dW);
       const af=fv*sv-dW,ar=Math.atan2(vl-b*k.r,ue)*sv;
       const Ff=-tyre(af,Cf,FfMax)*sv,Fr=-tyre(ar,Cr,FrMax)*sv;
       const du=-Ff*sw+vl*k.r,dv=Ff*cw+Fr-u*k.r;
@@ -961,7 +964,7 @@ function updateKart(k,inp,dt,now){
     if(sp<3)k.r*=Math.exp(-8*dt);
     // like KartRider, most of the speed the tyres scrub off is handed back (more of it while drifting)
     const sp1=Math.hypot(u,vl);
-    if(sp1>1&&sp1<sp0){const t=sp1+(sp0-sp1)*(k.drifting?.5:.6);u*=t/sp1;vl*=t/sp1;}
+    if(sp1>1&&sp1<sp0){const t=sp1+(sp0-sp1)*(k.drifting?.7:.6);u*=t/sp1;vl*=t/sp1;}
   }else{k.r*=Math.exp(-1.5*dt);k.h+=k.r*dt;}
   fx=Math.sin(k.h);fz=Math.cos(k.h);
   k.beta=Math.atan2(vl,u);k.slip=k.drifting?Math.min(1.2,Math.max(k.m||0,Math.abs(k.beta))):0;
@@ -975,7 +978,8 @@ function updateKart(k,inp,dt,now){
     const acc=c.accel*(k.drifting?1-.7*Math.min(1,k.slip*2.5):1);
     const tot=Math.hypot(fwd,vl);
     if(boosting){if(tot<top)fwd+=72*dt;}
-    else if(inp.throttle){if(tot<top)fwd+=acc*(1-.5*Math.max(0,tot)/top)*dt;}
+    // pull fades out near top speed, so anything that drags (like cornering) shows up as a small loss
+    else if(inp.throttle){if(tot<top)fwd+=acc*(1-.85*Math.max(0,tot)/top)*dt;}
     if(inp.brake&&!boosting){if(fwd>.5)fwd-=55*dt;else fwd=Math.max(fwd-15*dt,-16);}
     if(!inp.throttle&&!inp.brake&&!boosting)fwd-=fwd*.45*dt;
     if(tot>top){const sc=1-Math.min(.5,(tot-top)/tot*1.6*dt);fwd*=sc;vl*=sc;}
@@ -983,7 +987,9 @@ function updateKart(k,inp,dt,now){
     fwd-=G*.6*k.slope*dt;
     // rubber dragging sideways across the road: the bigger the slide the harder it slows the kart
     // tyres scrubbing sideways: the faster the slide and the tighter the turn, the more speed it eats
-    if(k.drifting)fwd-=Math.min(fwd,.26*Math.abs(vl)*(.25+Math.abs(k.r)))*dt;
+    if(k.drifting)fwd-=Math.min(fwd,.14*Math.abs(vl)*(.25+Math.abs(k.r)))*dt;
+    // ordinary cornering scrubs a little speed too, in proportion to how hard the kart is turning
+    else fwd-=Math.min(fwd,.12*Math.abs(fwd*k.r))*dt;
   }
   if(k.drifting&&k.isPlayer&&!k.air){
     k.gauge+=(.35+k.slip*.6)*Math.max(0,fwd)/60*c.gauge*dt;
@@ -1659,7 +1665,7 @@ function simulate(dt,now){
     let inp;
     if(k.isPlayer&&!k.finished){
       const target=(keys.right?1:0)-(keys.left?1:0);
-      k.steerS+=(target-k.steerS)*Math.min(1,dt*10);
+      k.steerS+=(target-k.steerS)*Math.min(1,dt*5);
       inp={throttle:keys.up||(touchMode&&!keys.down),brake:keys.down,steer:k.steerS,dir:target,drift:keys.drift,nitro:keys.nitro};
     }else if(k.isPlayer){inp={throttle:false,brake:false,steer:0,drift:false,nitro:false};k.boost=0;k.vx*=1-1.1*dt;k.vz*=1-1.1*dt;}
     else inp=aiInput(k,now,dt);
